@@ -1,5 +1,5 @@
 import { useEffect, useState, Component } from "react";
-import ParetoChart from "../lib/ParetoChart/node_modules/pareto-chart/";
+import ParetoChart from "pareto-chart";
 import axios from "axios";
 import { useSelector } from "react-redux";
 
