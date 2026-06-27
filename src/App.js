@@ -9,7 +9,7 @@ import AppPareto from "./pages/building";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { CheckLogin } from "./features/part/userSlice";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
 import CheckMail from "./pages/CheckMail";
 import EditProfile from "./pages/EditProfile";
@@ -18,6 +18,7 @@ import Utility from "./pages/Utility";
 
 function App() {
   const dispatch = useDispatch();
+  const userGlobal = useSelector((state) => state.user.user);
   const userlocalStorage = localStorage.getItem("user_token");
 
   //KEEP LOGIN CHECKER
@@ -35,9 +36,7 @@ function App() {
 
   return (
     <div>
-      <div>
-        <Navbar />
-      </div>
+      {(userGlobal.id || userGlobal.id_users) && <Navbar />}
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
