@@ -301,10 +301,13 @@
     const datePickStart = (e) => {
       var dataInput = e.target.value;
       setDatePickerStart(dataInput);
+      console.log(dataInput);
+      
     };
     const datePickFinish = (e) => {
       var dataInput = e.target.value;
       setDatePickerFinish(dataInput);
+         console.log(dataInput);
     };
 
     useEffect(() => {
