@@ -90,7 +90,7 @@ export default function Navbar() {
                 alt="avatar"
               />
               <span className="text-sm text-white font-medium hidden sm:block">
-                {userGlobal.name}
+                {userGlobal.name?.split(" ")[0].charAt(0).toUpperCase() + userGlobal.name?.split(" ")[0].slice(1).toLowerCase()}
               </span>
               <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
