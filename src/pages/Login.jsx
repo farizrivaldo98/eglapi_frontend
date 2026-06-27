@@ -8,24 +8,24 @@ function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  const emailHendeler = (event) => {
-    setEmail(event.target.value);
+  const usernameHandler = (event) => {
+    setUsername(event.target.value.toUpperCase());
   };
-  const passwordHendeler = (event) => {
+
+  const passwordHandler = (event) => {
     setPassword(event.target.value);
   };
 
   const addLogin = () => {
     let tempData = {
-      email: email,
+      username: username,
       password: password,
     };
 
     dispatch(loginData(tempData));
-    // navigate(0);
     const timeout = setTimeout(() => {
       navigate(0);
     }, 2000);
@@ -48,18 +48,21 @@ function Login() {
             <input type="hidden" name="remember" defaultValue="true" />
             <div className="-space-y-px rounded-md shadow-sm">
               <div>
-                <label htmlFor="email-address" className="sr-only">
-                  Email address
+                <label htmlFor="username" className="sr-only">
+                  Initial
                 </label>
                 <input
-                  onChange={emailHendeler}
-                  id="email-address"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  onChange={usernameHandler}
+                  value={username}
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="off"
+                  maxLength={3}
                   required
+                  style={{ textTransform: "uppercase" }}
                   className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  placeholder="Email address"
+                  placeholder="Initial (contoh: ABC)"
                 />
               </div>
               <br />
@@ -68,7 +71,7 @@ function Login() {
                   Password
                 </label>
                 <input
-                  onChange={passwordHendeler}
+                  onChange={passwordHandler}
                   id="password"
                   name="password"
                   type="password"

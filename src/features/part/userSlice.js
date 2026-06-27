@@ -47,7 +47,7 @@ export function loginData(data) {
   return async (dispatch) => {
     let respons = await Axios.post(
       "http://10.163.0.66:8002/part/login",
-      data
+      { username: data.username, password: data.password }
     );
     dispatch(setUser(respons.data.data));
     localStorage.setItem("user_token", respons.data.token);

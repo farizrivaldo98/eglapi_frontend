@@ -73,7 +73,7 @@ function Register() {
               <br />
               <div>
                 <label htmlFor="email-address" className="sr-only">
-                  User name
+                  Initial
                 </label>
                 <input
                   onChange={userNameHendeler}
