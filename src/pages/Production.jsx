@@ -55,7 +55,7 @@ function Production() {
   const [finishDate, setFinishDate] = useState();
 
   const fetchData = async (data, start, finish) => {
-    let response = await axios.get("http://localhost:8002/part/oee", {
+    let response = await axios.get("http://10.163.0.66:8002/part/oee", {
       params: {
         machine: data,
         start: start,
@@ -63,7 +63,7 @@ function Production() {
       },
     });
     let response1 = await axios.get(
-      "http://localhost:8002/part/variableoee",
+      "http://10.163.0.66:8002/part/variableoee",
       {
         params: {
           machine: data,

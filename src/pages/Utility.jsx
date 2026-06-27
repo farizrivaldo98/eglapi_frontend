@@ -74,7 +74,7 @@ function Utility() {
   useEffect(() => {
     const fetchData = async () => {
       let response = await axios.get(
-        "http://localhost:8002/part/getTabelEMS"
+        "http://10.163.0.66:8002/part/getTabelEMS"
       );
       setDataListTable(response.data);
     };
@@ -101,7 +101,7 @@ function Utility() {
 
     try {
       const response1 = await axios.get(
-        "http://localhost:8002/part/getTempChart",
+        "http://10.163.0.66:8002/part/getTempChart",
         {
           params: {
             area: areaPicker,
@@ -112,7 +112,7 @@ function Utility() {
         }
       );
       const response2 = await axios.get(
-        "http://localhost:8002/part/getTempChart",
+        "http://10.163.0.66:8002/part/getTempChart",
         {
           params: {
             area: areaPicker,
@@ -123,7 +123,7 @@ function Utility() {
         }
       );
       const response3 = await axios.get(
-        "http://localhost:8002/part/getTempChart",
+        "http://10.163.0.66:8002/part/getTempChart",
         {
           params: {
             area: areaPicker,
@@ -134,7 +134,7 @@ function Utility() {
         }
       );
       const response4 = await axios.get(
-        "http://localhost:8002/part/getAllDataEMS",
+        "http://10.163.0.66:8002/part/getAllDataEMS",
         {
           params: {
             area: areaPicker,

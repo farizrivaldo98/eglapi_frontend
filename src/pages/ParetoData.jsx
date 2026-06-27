@@ -12,7 +12,7 @@ function Pareto() {
   const date = useSelector((state) => state.part.date);
 
   const fetchData = async () => {
-    let response1 = await axios.get("http://localhost:8002/part/line1", {
+    let response1 = await axios.get("http://10.163.0.66:8002/part/line1", {
       params: {
         date: date,
       },
@@ -24,7 +24,7 @@ function Pareto() {
     setLine1(result1);
     console.log(result1);
 
-    let response2 = await axios.get("http://localhost:8002/part/line2", {
+    let response2 = await axios.get("http://10.163.0.66:8002/part/line2", {
       params: {
         date: date,
       },
@@ -35,7 +35,7 @@ function Pareto() {
     }
     setLine2(result2);
 
-    let response3 = await axios.get("http://localhost:8002/part/line3", {
+    let response3 = await axios.get("http://10.163.0.66:8002/part/line3", {
       params: {
         date: date,
       },

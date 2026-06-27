@@ -25,7 +25,7 @@ export default userSlice.reducer;
 export function registerData(data) {
   return async (dispatch) => {
     let response = await Axios.post(
-      "http://localhost:8002/part/register",
+      "http://10.163.0.66:8002/part/register",
       data
     );
     if (response) {
@@ -37,7 +37,7 @@ export function registerData(data) {
 export function loginData(data) {
   return async (dispatch) => {
     let respons = await Axios.post(
-      "http://localhost:8002/part/login",
+      "http://10.163.0.66:8002/part/login",
       data
     );
     dispatch(setUser(respons.data.data));
@@ -51,7 +51,7 @@ export function loginData(data) {
 export function CheckLogin(token) {
   return async (dispatch) => {
     let respons = await Axios.post(
-      "http://localhost:8002/part/check-Login",
+      "http://10.163.0.66:8002/part/check-Login",
       {},
       {
         headers: {

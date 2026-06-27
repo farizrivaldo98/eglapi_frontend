@@ -21,7 +21,7 @@ function EditProfile() {
       formData.append("data", JSON.stringify(obj));
       console.log(formData);
       const response = await axios.post(
-        "http://localhost:8002/upload",
+        "http://10.163.0.66:8002/upload",
         formData
       );
       console.log(response);
