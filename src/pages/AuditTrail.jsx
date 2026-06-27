@@ -182,7 +182,7 @@ export default function AuditTrail() {
           fontSize: 18, boxShadow: "0 0 16px #4F46E544",
         }}>📋</div>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#F1F5F9", margin: 0 }}>Audit Trail</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "#475569", margin: 0 }}>Audit Trail</h1>
           <p style={{ fontSize: 12, color: "#475569", margin: "4px 0 0" }}>
             Rekam aktivitas seluruh pengguna sistem — login, logout, akses data, export PDF.
           </p>
