@@ -1,7 +1,9 @@
+import { useEffect, useCallback } from "react";
 import { Disclosure } from "@headlessui/react";
 import { Bars3Icon, BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "../features/part/userSlice";
 
 import {
   Menu,
@@ -25,16 +27,42 @@ function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
+const IDLE_TIMEOUT = 10 * 60 * 1000; // 10 menit dalam ms
+
 export default function Navbar() {
   const userGlobal = useSelector((state) => state.user.user);
-
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const logOut = () => {
+  const logOut = useCallback(() => {
+    dispatch(logout());
     localStorage.removeItem("user_token");
     navigate("/");
-    navigate(0);
-  };
+  }, [dispatch, navigate]);
+
+  // Auto-logout setelah 10 menit idle
+  useEffect(() => {
+    if (!userGlobal.id_users) return;
+
+    let timer;
+
+    const resetTimer = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        alert("Sesi habis. Silakan login kembali.");
+        logOut();
+      }, IDLE_TIMEOUT);
+    };
+
+    const events = ["mousemove", "keydown", "click", "scroll"];
+    events.forEach((e) => window.addEventListener(e, resetTimer));
+    resetTimer(); // mulai timer saat login
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, resetTimer));
+    };
+  }, [userGlobal.id_users, logOut]);
 
   return (
     <Disclosure as="nav" className="bg-gray-800">
