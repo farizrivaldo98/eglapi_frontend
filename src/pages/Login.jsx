@@ -24,7 +24,6 @@ function Login() {
       username: username,
       password: password,
     };
-
     dispatch(loginData(tempData));
     const timeout = setTimeout(() => {
       navigate(0);
@@ -32,97 +31,89 @@ function Login() {
   };
 
   return (
-    <>
-      <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white rounded-2xl shadow-lg px-10 py-12 w-full max-w-sm">
+
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <img
+            src="https://www.lapilaboratories.com/assets/images/logo%20lapi2-01.png"
+            alt="Lapi Laboratories"
+            className="h-14 w-auto mb-4"
+          />
+          <h2 className="text-2xl font-bold text-gray-800 tracking-tight">
+            Sign in
+          </h2>
+          <p className="text-sm text-gray-400 mt-1">PT. Lapi Laboratories</p>
+        </div>
+
+        {/* Form */}
+        <div className="space-y-4">
           <div>
-            <img
-              className="mx-auto h-12 w-auto"
-              src="https://www.lapilaboratories.com/assets/images/logo%20lapi2-01.png"
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+              Initial
+            </label>
+            <input
+              onChange={usernameHandler}
+              value={username}
+              id="username"
+              name="username"
+              type="text"
+              autoComplete="off"
+              maxLength={3}
+              required
+              style={{ textTransform: "uppercase" }}
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+              placeholder="Contoh: ABC"
             />
-            <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-              Sign in to your account
-            </h2>
           </div>
-          <form className="mt-8 space-y-6" action="#" method="POST">
-            <input type="hidden" name="remember" defaultValue="true" />
-            <div className="-space-y-px rounded-md shadow-sm">
-              <div>
-                <label htmlFor="username" className="sr-only">
-                  Initial
-                </label>
-                <input
-                  onChange={usernameHandler}
-                  value={username}
-                  id="username"
-                  name="username"
-                  type="text"
-                  autoComplete="off"
-                  maxLength={3}
-                  required
-                  style={{ textTransform: "uppercase" }}
-                  className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  placeholder="Initial (contoh: ABC)"
-                />
-              </div>
-              <br />
-              <div>
-                <label htmlFor="password" className="sr-only">
-                  Password
-                </label>
-                <input
-                  onChange={passwordHandler}
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  className="relative block w-full rounded-b-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  placeholder="Password"
-                />
-              </div>
-            </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                />
-                <label
-                  htmlFor="remember-me"
-                  className="ml-2 block text-sm text-gray-900"
-                >
-                  Remember me
-                </label>
-              </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+              Password
+            </label>
+            <input
+              onChange={passwordHandler}
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+              placeholder="Password"
+            />
+          </div>
 
-              <div className="text-sm">
-                <a
-                  href="register"
-                  className="font-medium text-indigo-600 hover:text-indigo-500"
-                >
-                  Register ?
-                </a>
-              </div>
-            </div>
+          {/* Remember me + Register */}
+          <div className="flex items-center justify-between pt-1">
+            <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+              />
+              Remember me
+            </label>
+            <a
+              href="register"
+              className="text-sm font-medium text-green-600 hover:text-green-500 transition"
+            >
+              Register
+            </a>
+          </div>
 
-            <div>
-              <button
-                onClick={() => addLogin()}
-                type="button"
-                className="group relative flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-              >
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3"></span>
-                Sign in
-              </button>
-            </div>
-          </form>
+          {/* Button */}
+          <button
+            onClick={() => addLogin()}
+            type="button"
+            className="w-full mt-2 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 active:bg-green-700 text-white text-sm font-semibold tracking-wide transition"
+          >
+            Sign in
+          </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
