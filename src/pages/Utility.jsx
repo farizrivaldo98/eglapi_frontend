@@ -1,4 +1,4 @@
-  import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
   import {
     Select,
     Input,
@@ -18,8 +18,8 @@
   import axios from "axios";
   import jsPDF from "jspdf";
   import autoTable from "jspdf-autotable";
-  // import { useReactToPrint } from "react-to-print";
   import { useColorMode, useColorModeValue } from "@chakra-ui/react";
+  import { logAuditAction } from "../features/part/userSlice";  // ← TAMBAHAN
 
   var CanvasJS = CanvasJSReact.CanvasJS;
   var CanvasJSChart = CanvasJSReact.CanvasJSChart;
@@ -95,9 +95,10 @@
       });
     };
 
+    // ── DIMODIFIKASI: tambah logAuditAction setelah fetch berhasil ──
     const getSubmit = async () => {
-      setLoading(true); // Start spinner
-      setError(null); // Clear previous errors
+      setLoading(true);
+      setError(null);
 
       try {
         const response1 = await axios.get(
@@ -127,7 +128,7 @@
           {
             params: {
               area: areaPicker,
-        start: datePickerStart.replace('T', ' '),
+              start: datePickerStart.replace('T', ' '),
               finish: datePickerFinish.replace('T', ' '),
               format: 2,
             },
@@ -143,17 +144,12 @@
             },
           }
         );
-      setTempChartData(
-  response1.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) }))
-);
-setRhChartData(
-  response2.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) }))
-);
-setDpChartData(
-  response3.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) }))
-);
+
+        setTempChartData(response1.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) })));
+        setRhChartData(response2.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) })));
+        setDpChartData(response3.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) })));
         setAllDataTable(response4.data);
-        setIsTableVisible(true); // Show the table
+        setIsTableVisible(true);
 
         if (
           response1.data.length !== 0 &&
@@ -166,75 +162,55 @@ setDpChartData(
           setState(true);
         }
 
-        const maxSuhu = response1.data.reduce(
-          (acc, data) => Math.max(acc, data.y),
-          Number.NEGATIVE_INFINITY
-        );
-        var max = Number(maxSuhu.toFixed(2));
-        setmaxSuhu(max);
-
+        const maxSuhu = response1.data.reduce((acc, data) => Math.max(acc, data.y), Number.NEGATIVE_INFINITY);
+        setmaxSuhu(Number(maxSuhu.toFixed(2)));
         const minSuhu = Math.min(...response1.data.map((data) => data.y));
-        var min = Number(minSuhu.toFixed(2));
-        setminSuhu(min);
-
+        setminSuhu(Number(minSuhu.toFixed(2)));
         const totalSuhu = response1.data.reduce((sum, data) => sum + data.y, 0);
-        var total = 0;
-        total = Number(totalSuhu.toFixed(2));
         const averageSuhu = totalSuhu / response1.data.length;
-        var avgSuhu = Number(averageSuhu.toFixed(2));
-        setavgSuhu(avgSuhu);
+        setavgSuhu(Number(averageSuhu.toFixed(2)));
 
-        const maxRH = response2.data.reduce(
-          (acc, data) => Math.max(acc, data.y),
-          Number.NEGATIVE_INFINITY
-        );
-        var max = Number(maxRH.toFixed(2));
-        setmaxRH(max);
-
+        const maxRH = response2.data.reduce((acc, data) => Math.max(acc, data.y), Number.NEGATIVE_INFINITY);
+        setmaxRH(Number(maxRH.toFixed(2)));
         const minRH = Math.min(...response2.data.map((data) => data.y));
-        var min = Number(minRH.toFixed(2));
-        setminRH(min);
-
+        setminRH(Number(minRH.toFixed(2)));
         const totalRH = response2.data.reduce((sum, data) => sum + data.y, 0);
-        var total = 0;
-        total = Number(totalRH.toFixed(2));
         const averageRH = totalRH / response1.data.length;
-        var avgRH = Number(averageRH.toFixed(2));
-        setavgRH(avgRH);
+        setavgRH(Number(averageRH.toFixed(2)));
 
-        const maxDP = response3.data.reduce(
-          (acc, data) => Math.max(acc, data.y),
-          Number.NEGATIVE_INFINITY
-        );
-        var max = Number(maxDP.toFixed(2));
-        setmaxDP(max);
-
+        const maxDP = response3.data.reduce((acc, data) => Math.max(acc, data.y), Number.NEGATIVE_INFINITY);
+        setmaxDP(Number(maxDP.toFixed(2)));
         const minDP = Math.min(...response3.data.map((data) => data.y));
-        var min = Number(minDP.toFixed(2));
-        setminDP(min);
-
+        setminDP(Number(minDP.toFixed(2)));
         const totalDP = response3.data.reduce((sum, data) => sum + data.y, 0);
-        var total = 0;
-        total = Number(totalDP.toFixed(2));
         const averageDP = totalDP / response3.data.length;
-        var avgDP = Number(averageDP.toFixed(2));
-        setavgDP(avgDP);
+        setavgDP(Number(averageDP.toFixed(2)));
 
         const areaname = areaPicker
           .replace("cMT-PMWorkshop_", "")
           .replace("_data", "");
         setName(areaname);
+
+        // ── AUDIT: catat VIEW_UTILITY ─────────────────────────
+        await logAuditAction("VIEW_UTILITY", {
+          area:   areaPicker,
+          start:  datePickerStart,
+          finish: datePickerFinish,
+        });
+        // ──────────────────────────────────────────────────────
+
       } catch (err) {
         console.error("Error fetching data:", err);
         setError("Failed to fetch data. Please try again.");
       } finally {
-        const delay = 2000; // 2 seconds in milliseconds
+        const delay = 2000;
         setTimeout(() => {
-          setLoading(false); // Stop spinner
+          setLoading(false);
           console.log("Finished fetching data, stopping spinner...");
         }, delay);
       }
     };
+    // ────────────────────────────────────────────────────────────
 
     const handlePrevPage = () => {
       setCurrentPage((prev) => Math.max(prev - 1, 1));
@@ -248,10 +224,7 @@ setDpChartData(
 
     const renderTable = () => {
       const startIndex = (currentPage - 1) * rowsPerPage;
-      const visibleData = allDataTable.slice(
-        startIndex,
-        startIndex + rowsPerPage
-      );
+      const visibleData = allDataTable.slice(startIndex, startIndex + rowsPerPage);
 
       if (allDataTable.length === 0) {
         return (
@@ -274,30 +247,38 @@ setDpChartData(
       ));
     };
 
-    const exportToPDF = () => {
+    // ── DIMODIFIKASI: tambah logAuditAction setelah export ──
+    const exportToPDF = async () => {
       const doc = new jsPDF();
-      // Siapkan header kolom sesuai tabel
       const columns = [
-        { header: "ID", dataKey: "id" },
+        { header: "ID",   dataKey: "id" },
         { header: "Date", dataKey: "date" },
         { header: "Temp", dataKey: "temp" },
-        { header: "RH", dataKey: "RH" },
-        { header: "DP", dataKey: "DP" },
+        { header: "RH",   dataKey: "RH" },
+        { header: "DP",   dataKey: "DP" },
       ];
 
       console.log("ALL DATA TABLE FOR PDF EXPORT:", allDataTable);
 
-      // allDataTable adalah array of object
       autoTable(doc, {
         columns,
-        body: allDataTable, // Seluruh data!
-        styles: { fontSize: 10 },
-        headStyles: { fillColor: [71, 85, 105] }, // Tailwind slate-700
+        body: allDataTable,
+        styles:     { fontSize: 10 },
+        headStyles: { fillColor: [71, 85, 105] },
         theme: "grid",
       });
 
       doc.save("table-data-EMS.pdf");
+
+      // ── AUDIT: catat EXPORT_PDF ───────────────────────────
+      await logAuditAction("EXPORT_PDF", {
+        area:   areaPicker,
+        start:  datePickerStart,
+        finish: datePickerFinish,
+      });
+      // ──────────────────────────────────────────────────────
     };
+    // ────────────────────────────────────────────────────────
 
     const emsAreaPick = (e) => {
       var dataInput = e.target.value;
@@ -308,12 +289,11 @@ setDpChartData(
       var dataInput = e.target.value;
       setDatePickerStart(dataInput);
       console.log(dataInput);
-      
     };
     const datePickFinish = (e) => {
       var dataInput = e.target.value;
       setDatePickerFinish(dataInput);
-         console.log(dataInput);
+      console.log(dataInput);
     };
 
     useEffect(() => {
@@ -321,13 +301,11 @@ setDpChartData(
         const currentTheme = document.documentElement.getAttribute("data-theme");
         setIsDarkMode(currentTheme === "dark");
       };
-      // Observe attribute changes
       const observer = new MutationObserver(handleThemeChange);
       observer.observe(document.documentElement, {
         attributes: true,
         attributeFilter: ["data-theme"],
       });
-
       return () => observer.disconnect();
     }, []);
 
@@ -346,44 +324,41 @@ setDpChartData(
           fontColor: isDarkMode ? "white" : "black",
         },
       ],
-    axisY: [
-  {
-    // Temperature — index 0
-    title: "Temp (°C)",
-    titleFontColor: isDarkMode ? "#00bfff" : "#1e90ff",
-    suffix: " °C",
-    gridColor: isDarkMode ? "#444" : "#bfbfbf",
-    labelFontColor: isDarkMode ? "#00bfff" : "#1e90ff",
-    lineColor: isDarkMode ? "#00bfff" : "#1e90ff",
-    tickColor: isDarkMode ? "#00bfff" : "#1e90ff",
-    tickLength: 5,
-    tickThickness: 2,
-  },
-  {
-    // RH — index 1
-    title: "RH (%)",
-    titleFontColor: isDarkMode ? "#ffa500" : "#ff4500",
-    suffix: " %",
-    gridColor: "transparent",
-    labelFontColor: isDarkMode ? "#ffa500" : "#ff4500",
-    lineColor: isDarkMode ? "#ffa500" : "#ff4500",
-    tickColor: isDarkMode ? "#ffa500" : "#ff4500",
-    tickLength: 5,
-    tickThickness: 2,
-  },
-  {
-    // DP — index 2
-    title: "DP (Pa)",
-    titleFontColor: isDarkMode ? "#00ff00" : "#32cd32",
-    suffix: " Pa",
-    gridColor: "transparent",
-    labelFontColor: isDarkMode ? "#00ff00" : "#32cd32",
-    lineColor: isDarkMode ? "#00ff00" : "#32cd32",
-    tickColor: isDarkMode ? "#00ff00" : "#32cd32",
-    tickLength: 5,
-    tickThickness: 2,
-  },
-],
+      axisY: [
+        {
+          title: "Temp (°C)",
+          titleFontColor: isDarkMode ? "#00bfff" : "#1e90ff",
+          suffix: " °C",
+          gridColor: isDarkMode ? "#444" : "#bfbfbf",
+          labelFontColor: isDarkMode ? "#00bfff" : "#1e90ff",
+          lineColor: isDarkMode ? "#00bfff" : "#1e90ff",
+          tickColor: isDarkMode ? "#00bfff" : "#1e90ff",
+          tickLength: 5,
+          tickThickness: 2,
+        },
+        {
+          title: "RH (%)",
+          titleFontColor: isDarkMode ? "#ffa500" : "#ff4500",
+          suffix: " %",
+          gridColor: "transparent",
+          labelFontColor: isDarkMode ? "#ffa500" : "#ff4500",
+          lineColor: isDarkMode ? "#ffa500" : "#ff4500",
+          tickColor: isDarkMode ? "#ffa500" : "#ff4500",
+          tickLength: 5,
+          tickThickness: 2,
+        },
+        {
+          title: "DP (Pa)",
+          titleFontColor: isDarkMode ? "#00ff00" : "#32cd32",
+          suffix: " Pa",
+          gridColor: "transparent",
+          labelFontColor: isDarkMode ? "#00ff00" : "#32cd32",
+          lineColor: isDarkMode ? "#00ff00" : "#32cd32",
+          tickColor: isDarkMode ? "#00ff00" : "#32cd32",
+          tickLength: 5,
+          tickThickness: 2,
+        },
+      ],
       axisX: {
         lineColor: isDarkMode ? "#d6d6d6" : "#474747",
         labelFontColor: isDarkMode ? "white" : "black",
@@ -391,53 +366,46 @@ setDpChartData(
         tickThickness: 2,
         tickColor: isDarkMode ? "#d6d6d6" : "#474747",
       },
-      toolTip: {
-        shared: true,
-      },
+      toolTip: { shared: true },
       data: [
-  {
-    type: "line",
-    name: "Temperature",
-    axisYIndex: 0,          // ← tambah ini
-    showInLegend: true,
-    xValueFormatString: "",
-    yValueFormatString: "",
-    lineColor: isDarkMode ? "#00bfff" : "#1e90ff",
-    color: isDarkMode ? "#00bfff" : "#1e90ff",
-    markerColor: isDarkMode ? "#00bfff" : "#1e90ff",
-    dataPoints: tempChartData,
-  },
-  {
-    type: "line",
-    name: "RH",
-    axisYIndex: 1,          // ← tambah ini
-    showInLegend: true,
-    xValueFormatString: "",
-    yValueFormatString: "",
-    color: isDarkMode ? "#ffa500" : "#ff4500",
-    lineColor: isDarkMode ? "#ffa500" : "#ff4500",
-    markerColor: isDarkMode ? "#ffa500" : "#ff4500",
-    dataPoints: rhChartData,
-  },
-  {
-    type: "line",
-    name: "DP",
-    axisYIndex: 2,          // ← tambah ini
-    showInLegend: true,
-    xValueFormatString: "",
-    yValueFormatString: "",
-    lineColor: isDarkMode ? "#00ff00" : "#32cd32",
-    color: isDarkMode ? "#00ff00" : "#32cd32",
-    markerColor: isDarkMode ? "#00ff00" : "#32cd32",
-    dataPoints: dpChartData,
-  },
-],
+        {
+          type: "line",
+          name: "Temperature",
+          axisYIndex: 0,
+          showInLegend: true,
+          xValueFormatString: "",
+          yValueFormatString: "",
+          lineColor: isDarkMode ? "#00bfff" : "#1e90ff",
+          color: isDarkMode ? "#00bfff" : "#1e90ff",
+          markerColor: isDarkMode ? "#00bfff" : "#1e90ff",
+          dataPoints: tempChartData,
+        },
+        {
+          type: "line",
+          name: "RH",
+          axisYIndex: 1,
+          showInLegend: true,
+          xValueFormatString: "",
+          yValueFormatString: "",
+          color: isDarkMode ? "#ffa500" : "#ff4500",
+          lineColor: isDarkMode ? "#ffa500" : "#ff4500",
+          markerColor: isDarkMode ? "#ffa500" : "#ff4500",
+          dataPoints: rhChartData,
+        },
+        {
+          type: "line",
+          name: "DP",
+          axisYIndex: 2,
+          showInLegend: true,
+          xValueFormatString: "",
+          yValueFormatString: "",
+          lineColor: isDarkMode ? "#00ff00" : "#32cd32",
+          color: isDarkMode ? "#00ff00" : "#32cd32",
+          markerColor: isDarkMode ? "#00ff00" : "#32cd32",
+          dataPoints: dpChartData,
+        },
+      ],
     };
-
-    // const generatePDF =  useReactToPrint({
-    //   content: ()=> ComponentPDF.current,
-    //   documentTitle: Name+" Data"
-    // });
 
     return (
       <div>
@@ -465,11 +433,8 @@ setDpChartData(
                 border: "1px solid",
                 borderColor: borderColor,
                 borderRadius: "0.395rem",
-                background: "var(--color-background)", // background color from Tailwind config
-
-                _hover: {
-                  borderColor: hoverBorderColor,
-                },
+                background: "var(--color-background)",
+                _hover: { borderColor: hoverBorderColor },
               }}
             />
           </div>
@@ -490,11 +455,8 @@ setDpChartData(
                 border: "1px solid",
                 borderColor: borderColor,
                 borderRadius: "0.395rem",
-                background: "var(--color-background)", // background color from Tailwind config
-
-                _hover: {
-                  borderColor: hoverBorderColor,
-                },
+                background: "var(--color-background)",
+                _hover: { borderColor: hoverBorderColor },
               }}
             />
           </div>
@@ -511,16 +473,11 @@ setDpChartData(
             </div>
           </div>
         </div>
+
         <div className="block bg-card rounded-lg p-1 shadow-lg mx-auto overflow-x-auto">
           {loading ? (
             <div className="flex flex-col items-center">
-              <Spinner
-                thickness="4px"
-                speed="0.65s"
-                emptyColor="gray.200"
-                color="blue.500"
-                size="xl"
-              />
+              <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" />
             </div>
           ) : error ? (
             <div className="text-red-500 flex flex-col items-center">
@@ -530,59 +487,29 @@ setDpChartData(
             <CanvasJSChart options={options} />
           )}
         </div>
-        <Stack
-          className="flex flex-row justify-center mb-4  "
-          direction="row"
-          spacing={4}
-          align="center"
-        >
+
+        <Stack className="flex flex-row justify-center mb-4" direction="row" spacing={4} align="center">
           <div className="mt-3">
-            <div className="ml-16 text-text">
-              Avg Suhu = {avgSuhu.toLocaleString()} °C
-            </div>
-            <div className="ml-16 text-text">
-              Max Suhu = {maxSuhu.toLocaleString()} °C
-            </div>
-            <div className="ml-16 text-text">
-              Min Suhu = {minSuhu.toLocaleString()} °C
-            </div>
+            <div className="ml-16 text-text">Avg Suhu = {avgSuhu.toLocaleString()} °C</div>
+            <div className="ml-16 text-text">Max Suhu = {maxSuhu.toLocaleString()} °C</div>
+            <div className="ml-16 text-text">Min Suhu = {minSuhu.toLocaleString()} °C</div>
           </div>
           <div className="mt-3">
-            <div className="ml-16 text-text">
-              Avg RH = {avgRH.toLocaleString()} %
-            </div>
-            <div className="ml-16 text-text">
-              Max RH = {maxRH.toLocaleString()} %
-            </div>
-            <div className="ml-16 text-text">
-              Min RH = {minRH.toLocaleString()} %
-            </div>
+            <div className="ml-16 text-text">Avg RH = {avgRH.toLocaleString()} %</div>
+            <div className="ml-16 text-text">Max RH = {maxRH.toLocaleString()} %</div>
+            <div className="ml-16 text-text">Min RH = {minRH.toLocaleString()} %</div>
           </div>
           <div className="mt-3">
-            <div className="ml-16 text-text">
-              Avg DP = {avgDP.toLocaleString()} Pa
-            </div>
-            <div className="ml-16 text-text">
-              Max DP = {maxDP.toLocaleString()} Pa
-            </div>
-            <div className="ml-16 text-text">
-              Min DP = {minDP.toLocaleString()} Pa
-            </div>
+            <div className="ml-16 text-text">Avg DP = {avgDP.toLocaleString()} Pa</div>
+            <div className="ml-16 text-text">Max DP = {maxDP.toLocaleString()} Pa</div>
+            <div className="ml-16 text-text">Min DP = {minDP.toLocaleString()} Pa</div>
           </div>
         </Stack>
+
         <br />
-        <Stack
-          className="flex flex-row justify-center gap-2"
-          direction="row"
-          spacing={2}
-          align="center"
-        >
+        <Stack className="flex flex-row justify-center gap-2" direction="row" spacing={2} align="center">
           <div className="mt-2">
-            <Select
-              value={rowsPerPage}
-              onChange={(e) => setRowsPerPage(Number(e.target.value))}
-              width="80px"
-            >
+            <Select value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))} width="80px">
               <option value={5}>5</option>
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -592,63 +519,24 @@ setDpChartData(
             </Select>
           </div>
           <div>
-            <Button
-              className="w-40 mt-2"
-              colorScheme="red"
-              onClick={() => setIsTableVisible(!isTableVisible)}
-            >
+            <Button className="w-40 mt-2" colorScheme="red" onClick={() => setIsTableVisible(!isTableVisible)}>
               {isTableVisible ? "Hide All Data" : "Show All Data"}
             </Button>
           </div>
         </Stack>
+
         {isTableVisible && (
           <div className="mt-8 mx-20 bg-card rounded-md">
             <TableContainer>
               <Table key={colorMode} variant="simple">
-                <TableCaption
-                  sx={{
-                    color: tulisanColor,
-                  }}
-                >
-                  EMSe
-                </TableCaption>
+                <TableCaption sx={{ color: tulisanColor }}>EMSe</TableCaption>
                 <Thead>
                   <Tr>
-                    <Th
-                      sx={{
-                        color: tulisanColor,
-                      }}
-                    >
-                      id
-                    </Th>
-                    <Th
-                      sx={{
-                        color: tulisanColor,
-                      }}
-                    >
-                      Date Time
-                    </Th>
-                    <Th
-                      sx={{
-                        color: tulisanColor,
-                      }}
-                    >
-                      Temperature
-                    </Th>
-                    <Th
-                      sx={{
-                        color: tulisanColor,
-                      }}
-                    >
-                      Relative Humidity (RH)
-                    </Th>
-                    <Th
-                      sx={{
-                        color: tulisanColor,
-                      }}
-                    >
-                      Differential Presure (DP)
-                    </Th>
+                    <Th sx={{ color: tulisanColor }}>id</Th>
+                    <Th sx={{ color: tulisanColor }}>Date Time</Th>
+                    <Th sx={{ color: tulisanColor }}>Temperature</Th>
+                    <Th sx={{ color: tulisanColor }}>Relative Humidity (RH)</Th>
+                    <Th sx={{ color: tulisanColor }}>Differential Presure (DP)</Th>
                   </Tr>
                 </Thead>
                 <Tbody>{renderTable()}</Tbody>
@@ -656,13 +544,9 @@ setDpChartData(
             </TableContainer>
           </div>
         )}
-        {/* Pagination Controls */}
+
         <div className="flex justify-center items-center my-4 gap-4">
-          <Button
-            onClick={handlePrevPage}
-            isDisabled={currentPage === 1}
-            colorScheme="blue"
-          >
+          <Button onClick={handlePrevPage} isDisabled={currentPage === 1} colorScheme="blue">
             Previous
           </Button>
           <span className="text-text">
@@ -670,9 +554,7 @@ setDpChartData(
           </span>
           <Button
             onClick={handleNextPage}
-            isDisabled={
-              currentPage === Math.ceil(allDataTable.length / rowsPerPage)
-            }
+            isDisabled={currentPage === Math.ceil(allDataTable.length / rowsPerPage)}
             colorScheme="blue"
           >
             Next

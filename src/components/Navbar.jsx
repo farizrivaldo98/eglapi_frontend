@@ -1,14 +1,14 @@
 import { useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { logout } from "../features/part/userSlice";
+import { logoutWithAudit } from "../features/part/userSlice";   // ← UBAH import
 import { Menu, MenuButton, MenuList, MenuItem, MenuDivider } from "@chakra-ui/react";
 
 const navigation = [
   { name: "Maintenance", path: "/Maintenance" },
-  { name: "Utility", path: "/Utility" },
-  { name: "Production", path: "/production" },
-  { name: "Building", path: "/building" },
+  { name: "Utility",     path: "/Utility" },
+  { name: "Production",  path: "/production" },
+  { name: "Building",    path: "/building" },
 ];
 
 const IDLE_TIMEOUT = 10 * 60 * 1000;
@@ -22,15 +22,16 @@ function formatName(name = "") {
 
 export default function Navbar() {
   const userGlobal = useSelector((state) => state.user.user);
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const dispatch   = useDispatch();
+  const navigate   = useNavigate();
+  const location   = useLocation();
 
-  const logOut = useCallback(() => {
-    dispatch(logout());
-    localStorage.removeItem("user_token");
+  // ── logOut: catat LOGOUT dulu, baru bersihkan sesi ──────────
+  const logOut = useCallback(async () => {
+    await dispatch(logoutWithAudit());   // ← pakai thunk baru
     navigate("/");
   }, [dispatch, navigate]);
+  // ────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!userGlobal.id_users && !userGlobal.id) return;
@@ -112,13 +113,15 @@ export default function Navbar() {
                   </svg>
                 </div>
               </MenuButton>
+
               <MenuList
-                minW="160px"
+                minW="180px"
                 shadow="lg"
                 borderRadius="lg"
                 border="1px solid #e5e7eb"
                 zIndex={50}
               >
+                {/* Edit Profile */}
                 <MenuItem
                   onClick={() => navigate("/editprofile")}
                   fontSize="sm"
@@ -126,7 +129,25 @@ export default function Navbar() {
                 >
                   ✏️ &nbsp; Edit Profile
                 </MenuItem>
+
+                {/* ── AUDIT TRAIL — hanya tampil untuk isAdmin == 1 ── */}
+                {Number(userGlobal.isAdmin) === 1 && (
+                  <>
+                    <MenuItem
+                      onClick={() => navigate("/audit-trail")}
+                      fontSize="sm"
+                      _hover={{ bg: "blue.50" }}
+                      color="blue.600"
+                    >
+                      📋 &nbsp; Audit Trail
+                    </MenuItem>
+                  </>
+                )}
+                {/* ─────────────────────────────────────────────────── */}
+
                 <MenuDivider />
+
+                {/* Logout */}
                 <MenuItem
                   onClick={logOut}
                   fontSize="sm"
