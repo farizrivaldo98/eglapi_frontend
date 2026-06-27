@@ -80,7 +80,7 @@ function Utility() {
     };
     fetchData();
   }, []);
-
+ 
   const renderDropDownArea = () => {
     return dataListTable.map((entry) => {
       const tableName = entry.TABLE_NAME;
