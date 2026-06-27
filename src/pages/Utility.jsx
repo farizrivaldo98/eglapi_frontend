@@ -143,9 +143,15 @@
             },
           }
         );
-        setTempChartData(response1.data);
-        setRhChartData(response2.data);
-        setDpChartData(response3.data);
+      setTempChartData(
+  response1.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) }))
+);
+setRhChartData(
+  response2.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) }))
+);
+setDpChartData(
+  response3.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) }))
+);
         setAllDataTable(response4.data);
         setIsTableVisible(true); // Show the table
 
@@ -395,7 +401,7 @@
     axisYIndex: 0,          // ← tambah ini
     showInLegend: true,
     xValueFormatString: "",
-    yValueFormatString: "°C",
+    yValueFormatString: "",
     lineColor: isDarkMode ? "#00bfff" : "#1e90ff",
     color: isDarkMode ? "#00bfff" : "#1e90ff",
     markerColor: isDarkMode ? "#00bfff" : "#1e90ff",
@@ -407,7 +413,7 @@
     axisYIndex: 1,          // ← tambah ini
     showInLegend: true,
     xValueFormatString: "",
-    yValueFormatString: "%",
+    yValueFormatString: "",
     color: isDarkMode ? "#ffa500" : "#ff4500",
     lineColor: isDarkMode ? "#ffa500" : "#ff4500",
     markerColor: isDarkMode ? "#ffa500" : "#ff4500",
@@ -419,7 +425,7 @@
     axisYIndex: 2,          // ← tambah ini
     showInLegend: true,
     xValueFormatString: "",
-    yValueFormatString: "Pa",
+    yValueFormatString: "",
     lineColor: isDarkMode ? "#00ff00" : "#32cd32",
     color: isDarkMode ? "#00ff00" : "#32cd32",
     markerColor: isDarkMode ? "#00ff00" : "#32cd32",
