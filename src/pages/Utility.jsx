@@ -395,7 +395,7 @@
     axisYIndex: 0,          // ← tambah ini
     showInLegend: true,
     xValueFormatString: "",
-    yValueFormatString: "0.00 °C",
+    yValueFormatString: "00.0 °C",
     lineColor: isDarkMode ? "#00bfff" : "#1e90ff",
     color: isDarkMode ? "#00bfff" : "#1e90ff",
     markerColor: isDarkMode ? "#00bfff" : "#1e90ff",
@@ -407,7 +407,7 @@
     axisYIndex: 1,          // ← tambah ini
     showInLegend: true,
     xValueFormatString: "",
-    yValueFormatString: "0.00 %",
+    yValueFormatString: "00.0 %",
     color: isDarkMode ? "#ffa500" : "#ff4500",
     lineColor: isDarkMode ? "#ffa500" : "#ff4500",
     markerColor: isDarkMode ? "#ffa500" : "#ff4500",
@@ -419,7 +419,7 @@
     axisYIndex: 2,          // ← tambah ini
     showInLegend: true,
     xValueFormatString: "",
-    yValueFormatString: "0.00 Pa",
+    yValueFormatString: "000 Pa",
     lineColor: isDarkMode ? "#00ff00" : "#32cd32",
     color: isDarkMode ? "#00ff00" : "#32cd32",
     markerColor: isDarkMode ? "#00ff00" : "#32cd32",
