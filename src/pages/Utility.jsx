@@ -105,8 +105,8 @@
           {
             params: {
               area: areaPicker,
-              start: datePickerStart.substring(0, 10),
-              finish: datePickerFinish.substring(0, 10),
+              start: datePickerStart.replace('T', ' '),
+              finish: datePickerFinish.replace('T', ' '),
               format: 0,
             },
           }
@@ -116,8 +116,8 @@
           {
             params: {
               area: areaPicker,
-              start: datePickerStart.substring(0, 10),
-              finish: datePickerFinish.substring(0, 10),
+              start: datePickerStart.replace('T', ' '),
+              finish: datePickerFinish.replace('T', ' '),
               format: 1,
             },
           }
@@ -127,8 +127,8 @@
           {
             params: {
               area: areaPicker,
-        start: datePickerStart.substring(0, 10),
-              finish: datePickerFinish.substring(0, 10),
+        start: datePickerStart.replace('T', ' '),
+              finish: datePickerFinish.replace('T', ' '),
               format: 2,
             },
           }
@@ -138,8 +138,8 @@
           {
             params: {
               area: areaPicker,
-              start: datePickerStart.substring(0, 10),
-              finish: datePickerFinish.substring(0, 10),
+              start: datePickerStart.replace('T', ' '),
+              finish: datePickerFinish.replace('T', ' '),
             },
           }
         );
