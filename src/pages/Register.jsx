@@ -13,18 +13,10 @@ function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const fullNameHendeler = (event) => {
-    setFullName(event.target.value);
-  };
-  const userNameHendeler = (event) => {
-    setUserName(event.target.value);
-  };
-  const emailHendeler = (event) => {
-    setEmail(event.target.value);
-  };
-  const passwordHendeler = (event) => {
-    setPassword(event.target.value);
-  };
+  const fullNameHandler = (event) => setFullName(event.target.value);
+  const userNameHandler = (event) => setUserName(event.target.value.toUpperCase());
+  const emailHandler = (event) => setEmail(event.target.value);
+  const passwordHandler = (event) => setPassword(event.target.value);
 
   const addRegister = () => {
     let tempData = {
@@ -33,118 +25,113 @@ function Register() {
       username: userName,
       password: password,
     };
-
     dispatch(registerData(tempData));
-
-    navigate("/mail");
+    navigate("/");
   };
 
   return (
-    <>
-      <div className="flex min-h-full items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md space-y-8">
-          <div>
-            <img
-              className="mx-auto h-12 w-auto"
-              src="https://www.kalbeconsumerhealth.com/assets/images/logo-kalbe-black.png"
-            />
-            <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-              Register your account
-            </h2>
-          </div>
-          <form className="mt-8 space-y-6" action="#" method="POST">
-            <input type="hidden" name="remember" defaultValue="true" />
-            <div className="-space-y-px rounded-md shadow-sm">
-              <div>
-                <label htmlFor="email-address" className="sr-only">
-                  Full name
-                </label>
-                <input
-                  onChange={fullNameHendeler}
-                  id="fullname"
-                  name="fullname"
-                  type="fullname"
-                  autoComplete="fullname"
-                  required
-                  className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  placeholder="Full Name"
-                />
-              </div>
-              <br />
-              <div>
-                <label htmlFor="email-address" className="sr-only">
-                  Initial
-                </label>
-                <input
-                  onChange={userNameHendeler}
-                  id="username"
-                  name="username"
-                  type="username"
-                  autoComplete="username"
-                  maxLength={3}
-                  required
-                  style={{ textTransform: "uppercase" }}
-                  className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  placeholder="Initial"
-                />
-              </div>
-              <br />
-              <div>
-                <label htmlFor="email-address" className="sr-only">
-                  Email address
-                </label>
-                <input
-                  onChange={emailHendeler}
-                  id="email-address"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  placeholder="Email address"
-                />
-              </div>
-              <br />
-              <div>
-                <label htmlFor="password" className="sr-only">
-                  Password
-                </label>
-                <input
-                  onChange={passwordHendeler}
-                  id="password"
-                  name="password"
-                  type="text"
-                  autoComplete="current-password"
-                  required
-                  className="relative block w-full rounded-b-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  placeholder="Password"
-                />
-              </div>
-              <br />
-              <div className="text-sm">
-                <a
-                  href="/"
-                  className="font-medium text-indigo-600 hover:text-indigo-500"
-                >
-                  LogIn ?
-                </a>
-              </div>
-            </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="bg-white rounded-2xl shadow-lg px-10 py-12 w-full max-w-sm">
 
-            <div>
-              <button
-                onClick={() => addRegister()}
-                type="button"
-                className="group relative flex w-full justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-              >
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3"></span>
-                Register
-              </button>
-            </div>
-          </form>
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <img
+            src="https://www.lapilaboratories.com/assets/images/logo%20lapi2-01.png"
+            alt="Lapi Laboratories"
+            className="h-14 w-auto mb-4"
+          />
+          <h2 className="text-2xl font-bold text-gray-800 tracking-tight">
+            Register
+          </h2>
+          <p className="text-sm text-gray-400 mt-1">PT. Lapi Laboratories</p>
+        </div>
+
+        {/* Form */}
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+              Full Name
+            </label>
+            <input
+              onChange={fullNameHandler}
+              id="fullname"
+              name="fullname"
+              type="text"
+              autoComplete="name"
+              required
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+              placeholder="Nama Lengkap"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+              Initial
+            </label>
+            <input
+              onChange={userNameHandler}
+              value={userName}
+              id="username"
+              name="username"
+              type="text"
+              autoComplete="off"
+              maxLength={3}
+              required
+              style={{ textTransform: "uppercase" }}
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+              placeholder="Contoh: ABC"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+              Email
+            </label>
+            <input
+              onChange={emailHandler}
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+              placeholder="email@lapi.co.id"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+              Password
+            </label>
+            <input
+              onChange={passwordHandler}
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="new-password"
+              required
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+              placeholder="Password"
+            />
+          </div>
+
+          <button
+            onClick={() => addRegister()}
+            type="button"
+            className="w-full mt-2 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 active:bg-green-700 text-white text-sm font-semibold tracking-wide transition"
+          >
+            Register
+          </button>
+
+          <p className="text-center text-sm text-gray-400 pt-1">
+            Sudah punya akun?{" "}
+            <a href="/" className="text-green-600 font-medium hover:text-green-500 transition">
+              Sign in
+            </a>
+          </p>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

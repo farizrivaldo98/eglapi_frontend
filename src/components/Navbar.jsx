@@ -1,38 +1,23 @@
 import { useEffect, useCallback } from "react";
-import { Disclosure } from "@headlessui/react";
-import { Bars3Icon, BellIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../features/part/userSlice";
-
-import {
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  MenuItemOption,
-  MenuGroup,
-  MenuOptionGroup,
-  MenuDivider,
-} from "@chakra-ui/react";
+import { Menu, MenuButton, MenuList, MenuItem, MenuDivider } from "@chakra-ui/react";
 
 const navigation = [
-  { name: "Maintenance", href: "#", current: false },
-  { name: "Utility", href: "#", current: false },
-  { name: "Production", href: "#", current: false },
-  { name: "building", href: "#", current: false },
+  { name: "Maintenance", path: "/Maintenance" },
+  { name: "Utility", path: "/Utility" },
+  { name: "Production", path: "/production" },
+  { name: "Building", path: "/building" },
 ];
 
-function classNames(...classes) {
-  return classes.filter(Boolean).join(" ");
-}
-
-const IDLE_TIMEOUT = 10 * 60 * 1000; // 10 menit dalam ms
+const IDLE_TIMEOUT = 10 * 60 * 1000;
 
 export default function Navbar() {
   const userGlobal = useSelector((state) => state.user.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const logOut = useCallback(() => {
     dispatch(logout());
@@ -40,12 +25,10 @@ export default function Navbar() {
     navigate("/");
   }, [dispatch, navigate]);
 
-  // Auto-logout setelah 10 menit idle
   useEffect(() => {
-    if (!userGlobal.id_users) return;
+    if (!userGlobal.id_users && !userGlobal.id) return;
 
     let timer;
-
     const resetTimer = () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
@@ -56,96 +39,85 @@ export default function Navbar() {
 
     const events = ["mousemove", "keydown", "click", "scroll"];
     events.forEach((e) => window.addEventListener(e, resetTimer));
-    resetTimer(); // mulai timer saat login
+    resetTimer();
 
     return () => {
       clearTimeout(timer);
       events.forEach((e) => window.removeEventListener(e, resetTimer));
     };
-  }, [userGlobal.id_users, logOut]);
+  }, [userGlobal.id_users, userGlobal.id, logOut]);
 
   return (
-    <Disclosure as="nav" className="bg-gray-800">
-      {({ open }) => (
-        <>
-          <div className="mx-auto max-w-8x2 px-6 sm:px-8 lg:px-2">
-            <div className="relative flex h-16 items-center justify-between">
-              <div className="absolute inset-y-0 left-0 flex items-center sm:hidden">
-                {/* Mobile menu button*/}
-                <Disclosure.Button className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
-                  <span className="sr-only">Open main menu</span>
-                  {open ? (
-                    <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
-                  ) : (
-                    <Bars3Icon className="block h-6 w-6" aria-hidden="true" />
-                  )}
-                </Disclosure.Button>
-              </div>
+    <nav className="bg-gray-900 border-b border-gray-700 shadow-md">
+      <div className="mx-auto px-6 lg:px-10">
+        <div className="flex items-center justify-between h-14">
 
-              <div>
-                <img
-                  className="hidden h-12 w-auto lg:block flex-row"
-                  src="https://www.lapilaboratories.com/assets/images/logo%20lapi2-01.png"
-                  alt="Your Company"
-                />
-              </div>
+          {/* Logo */}
+          <div className="flex items-center gap-8">
+            <img
+              src="https://www.lapilaboratories.com/assets/images/logo%20lapi2-01.png"
+              alt="Lapi"
+              className="h-8 w-auto brightness-0 invert"
+            />
 
-              <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
-                <div className="hidden sm:ml-6 sm:block">
-                  {userGlobal.id ? (
-                    <div className="flex space-x-5">
-                      {navigation.map((item) => (
-                        <button
-                          key={item.name}
-                          href={item.href}
-                          className={classNames(
-                            item.current
-                              ? "bg-gray-900 text-white"
-                              : "text-gray-300 hover:bg-gray-700 hover:text-white",
-                            "rounded-md px-3 py-2 text-sm font-medium"
-                          )}
-                          aria-current={item.current ? "page" : undefined}
-                          onClick={() => {
-                            navigate(`/${item.name}`);
-                          }}
-                        >
-                          {item.name}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <div></div>
-                  )}
-                </div>
-              </div>
-              {userGlobal.id ? (
-                <>
-                  <Menu>
-                    <MenuButton className=" flex flex-2 items-end justify-end bg-gray-900 text-white hover:bg-gray-700 hover:text-white rounded-md px-3 py-2 text-sm font-medium">
-                      <img
-                        className="inline-block h-6 w-6 mr-3 rounded-full ring-2 ring-red"
-                        src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png"
-                        alt=""
-                      />
-                      {userGlobal.name}
-                    </MenuButton>
-                    <MenuList>
-                      <MenuItem onClick={() => navigate("/editprofile")}>
-                        Edit Profile
-                      </MenuItem>
-                      <MenuItem onClick={() => logOut()}>LogOut</MenuItem>
-                    </MenuList>
-                  </Menu>
-                </>
-              ) : (
-                <div></div>
-              )}
-
-              <div className="absolute inset-y-0 right-0 flex items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:pr-0"></div>
+            {/* Nav Links */}
+            <div className="hidden sm:flex items-center gap-1">
+              {navigation.map((item) => {
+                const isActive = location.pathname.toLowerCase() === item.path.toLowerCase();
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => navigate(item.path)}
+                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
+                      isActive
+                        ? "bg-green-600 text-white"
+                        : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                    }`}
+                  >
+                    {item.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
-        </>
-      )}
-    </Disclosure>
+
+          {/* User Menu */}
+          <Menu>
+            <MenuButton className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 transition">
+              <img
+                className="h-7 w-7 rounded-full object-cover ring-2 ring-green-500"
+                src="https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png"
+                alt="avatar"
+              />
+              <span className="text-sm text-white font-medium hidden sm:block">
+                {userGlobal.name}
+              </span>
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </MenuButton>
+            <MenuList minW="160px" shadow="lg" borderRadius="lg" border="1px solid #e5e7eb">
+              <MenuItem
+                onClick={() => navigate("/editprofile")}
+                fontSize="sm"
+                _hover={{ bg: "gray.50" }}
+              >
+                ✏️ &nbsp; Edit Profile
+              </MenuItem>
+              <MenuDivider />
+              <MenuItem
+                onClick={logOut}
+                fontSize="sm"
+                color="red.500"
+                _hover={{ bg: "red.50" }}
+              >
+                🚪 &nbsp; Logout
+              </MenuItem>
+            </MenuList>
+          </Menu>
+
+        </div>
+      </div>
+    </nav>
   );
 }
