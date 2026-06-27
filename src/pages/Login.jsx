@@ -33,7 +33,7 @@ function Login() {
 
   return (
     <>
-      <div className="flex min-h-full items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+      <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="w-full max-w-md space-y-8">
           <div>
             <img
@@ -62,7 +62,7 @@ function Login() {
                   required
                   style={{ textTransform: "uppercase" }}
                   className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                  placeholder="Initial"
+                  placeholder="Initial (contoh: ABC)"
                 />
               </div>
               <br />
