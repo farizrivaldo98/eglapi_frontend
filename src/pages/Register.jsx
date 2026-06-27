@@ -118,7 +118,10 @@ function Register() {
           <button
             onClick={() => addRegister()}
             type="button"
-            className="w-full mt-2 py-2.5 rounded-lg bg-green-600 hover:bg-green-500 active:bg-green-700 text-white text-sm font-semibold tracking-wide transition"
+            disabled={!fullName || !userName || !email || !password}
+            className="w-full mt-2 py-2.5 rounded-lg text-sm font-semibold tracking-wide transition
+              bg-green-600 hover:bg-green-500 active:bg-green-700 text-white
+              disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
           >
             Register
           </button>
