@@ -11,10 +11,12 @@ import {
 const BASE_URL = "http://10.163.0.66:8002";
 
 const ACTION_CFG = {
-  LOGIN:        { colorScheme: "green",  label: "Login",      icon: "🔑" },
-  LOGOUT:       { colorScheme: "red",    label: "Logout",     icon: "🚪" },
-  VIEW_UTILITY: { colorScheme: "blue",   label: "Lihat Data", icon: "👁️" },
-  EXPORT_PDF:   { colorScheme: "yellow", label: "Export PDF", icon: "📄" },
+  LOGIN:             { colorScheme: "green",  label: "Login",       icon: "🔑" },
+  LOGOUT:            { colorScheme: "red",    label: "Logout",      icon: "🚪" },
+  VIEW_UTILITY:      { colorScheme: "blue",   label: "Lihat Data",  icon: "👁️" },
+  EXPORT_PDF:        { colorScheme: "yellow", label: "Export PDF",  icon: "📄" },
+  ADMIN_EDIT_USER:   { colorScheme: "orange", label: "Edit User",   icon: "✏️" },
+  ADMIN_DELETE_USER: { colorScheme: "red",    label: "Hapus User",  icon: "🗑️" },
 };
 
 const ROWS_PER_PAGE = 20;
@@ -36,35 +38,78 @@ function ActionBadge({ action }) {
 function parseDetail(detailStr) {
   try {
     const d = JSON.parse(detailStr || "{}");
-    if (!d.area && !d.start && !d.finish) return "—";
-    const cleanArea = d.area
-      ? d.area.replace("cMT-PMWorkshop_", "").replace("_data", "")
-      : "";
+
+    // Empty object → —
+    if (Object.keys(d).length === 0) return "—";
+
+    // VIEW_UTILITY / EXPORT_PDF → { area, start, finish }
+    if (d.area || d.start || d.finish) {
+      const cleanArea = d.area
+        ? d.area.replace("cMT-PMWorkshop_", "").replace("_data", "")
+        : "";
+      return (
+        <div style={{ fontSize: 12, lineHeight: 1.7 }}>
+          {cleanArea && (
+            <div>
+              <span style={{ fontWeight: 600 }}>Ruang: </span>
+              {cleanArea}
+            </div>
+          )}
+          {d.start && (
+            <div>
+              <span style={{ fontWeight: 600 }}>Dari: </span>
+              <span style={{ fontFamily: "monospace", fontSize: 11 }}>
+                {d.start.replace("T", " ")}
+              </span>
+            </div>
+          )}
+          {d.finish && (
+            <div>
+              <span style={{ fontWeight: 600 }}>Sampai: </span>
+              <span style={{ fontFamily: "monospace", fontSize: 11 }}>
+                {d.finish.replace("T", " ")}
+              </span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ADMIN_EDIT_USER / ADMIN_DELETE_USER → { target_id, target_name, updated_fields }
+    if (d.target_id !== undefined || d.target_name) {
+      return (
+        <div style={{ fontSize: 12, lineHeight: 1.7 }}>
+          {d.target_name && (
+            <div>
+              <span style={{ fontWeight: 600 }}>User: </span>
+              {d.target_name}
+            </div>
+          )}
+          {d.target_id !== undefined && (
+            <div>
+              <span style={{ fontWeight: 600 }}>ID: </span>
+              {d.target_id}
+            </div>
+          )}
+          {d.updated_fields && (
+            <div>
+              <span style={{ fontWeight: 600 }}>Fields: </span>
+              <span style={{ fontFamily: "monospace", fontSize: 11 }}>
+                {Array.isArray(d.updated_fields)
+                  ? d.updated_fields.join(", ")
+                  : d.updated_fields}
+              </span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Fallback: tampilkan raw JSON
     return (
-      <div style={{ fontSize: 12, lineHeight: 1.7 }}>
-        {cleanArea && (
-          <div>
-            <span style={{ fontWeight: 600 }}>Ruang: </span>
-            {cleanArea}
-          </div>
-        )}
-        {d.start && (
-          <div>
-            <span style={{ fontWeight: 600 }}>Dari: </span>
-            <span style={{ fontFamily: "monospace", fontSize: 11 }}>
-              {d.start.replace("T", " ")}
-            </span>
-          </div>
-        )}
-        {d.finish && (
-          <div>
-            <span style={{ fontWeight: 600 }}>Sampai: </span>
-            <span style={{ fontFamily: "monospace", fontSize: 11 }}>
-              {d.finish.replace("T", " ")}
-            </span>
-          </div>
-        )}
-      </div>
+      <span style={{ fontFamily: "monospace", fontSize: 11 }}>
+        {JSON.stringify(d)}
+      </span>
     );
   } catch {
     return "—";
@@ -131,7 +176,7 @@ export default function AuditTrail() {
     );
   }
 
-  const summary      = ["LOGIN", "LOGOUT", "VIEW_UTILITY", "EXPORT_PDF"].map((act) => ({
+  const summary      = ["LOGIN", "LOGOUT", "VIEW_UTILITY", "EXPORT_PDF", "ADMIN_EDIT_USER", "ADMIN_DELETE_USER"].map((act) => ({
     act, count: logs.filter((l) => l.action === act).length,
   }));
   const totalPages    = Math.max(1, Math.ceil(logs.length / ROWS_PER_PAGE));
@@ -206,6 +251,8 @@ export default function AuditTrail() {
               <option value="LOGOUT">🚪 Logout</option>
               <option value="VIEW_UTILITY">👁️ Lihat Data Utility</option>
               <option value="EXPORT_PDF">📄 Export PDF</option>
+              <option value="ADMIN_EDIT_USER">✏️ Edit User</option>
+              <option value="ADMIN_DELETE_USER">🗑️ Hapus User</option>
             </Select>
           </div>
 
@@ -218,7 +265,7 @@ export default function AuditTrail() {
       {/* ── Summary Badges ─────────────────────────────────────── */}
       {fetched && (
         <div className="flex flex-wrap gap-2 mx-6 mb-4">
-          {summary.map(({ act, count }) => {
+          {summary.filter(({ count }) => count > 0).map(({ act, count }) => {
             const cfg = ACTION_CFG[act] || { colorScheme: "gray", label: act, icon: "•" };
             return (
               <Badge key={act} colorScheme={cfg.colorScheme} fontSize="0.8em" px={3} py={1}>
