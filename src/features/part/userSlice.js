@@ -59,9 +59,9 @@ export const logAuditAction = async (action, detail = {}) => {
 // ──────────────────────────────────────────────────────────────
 export function logoutWithAudit() {
   return async (dispatch) => {
-    await logAuditAction("LOGOUT", {});          // catat LOGOUT
-    dispatch(logout());                           // hapus state Redux
-    localStorage.removeItem("user_token");        // hapus token
+    await logAuditAction("LOGOUT", {});     // catat LOGOUT
+    dispatch(logout());                      // hapus state Redux
+    localStorage.removeItem("user_token");   // hapus token
   };
 }
 
@@ -70,36 +70,51 @@ export function logoutWithAudit() {
 // ──────────────────────────────────────────────────────────────
 export function registerData(data) {
   return async (dispatch) => {
-    let response = await Axios.post(`${BASE_URL}/part/register`, data);
-    if (response) {
-      alert(response.data.message);
+    try {
+      const response = await Axios.post(`${BASE_URL}/part/register`, data);
+      if (response) {
+        alert(response.data.message);
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || "Register gagal, coba lagi.");
     }
   };
 }
 
 export function loginData(data) {
   return async (dispatch) => {
-    let respons = await Axios.post(`${BASE_URL}/part/login`, {
-      username: data.username,
-      password: data.password,
-    });
-    dispatch(setUser(respons.data.data));
-    localStorage.setItem("user_token", respons.data.token);
-    if (respons) {
+    try {
+      const respons = await Axios.post(`${BASE_URL}/part/login`, {
+        username: data.username,
+        password: data.password,
+      });
+      dispatch(setUser(respons.data.data));
+      localStorage.setItem("user_token", respons.data.token);
       alert(respons.data.message);
+    } catch (err) {
+      // Tampilkan pesan error dari backend (mis. "Initial & password invalid")
+      alert(err.response?.data?.message || "Login gagal, coba lagi.");
     }
   };
 }
 
 export function CheckLogin(token) {
   return async (dispatch) => {
-    let respons = await Axios.post(
-      `${BASE_URL}/part/check-Login`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (respons) {
-      dispatch(setUser(respons.data.data));
+    try {
+      const respons = await Axios.post(
+        `${BASE_URL}/part/check-Login`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (respons) {
+        dispatch(setUser(respons.data.data));
+      }
+    } catch (err) {
+      // Token expired atau invalid → bersihkan dan paksa login ulang
+      if (err.response?.status === 401) {
+        localStorage.removeItem("user_token");
+        dispatch(logout());
+      }
     }
   };
 }
