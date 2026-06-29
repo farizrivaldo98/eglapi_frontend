@@ -15,7 +15,8 @@ import CheckMail from "./pages/CheckMail";
 import EditProfile from "./pages/EditProfile";
 import Production from "./pages/Production";
 import Utility from "./pages/Utility";
-import AuditTrail from "./pages/AuditTrail";   // ← TAMBAHAN
+import AuditTrail from "./pages/AuditTrail";
+import Administrator from "./pages/Administrator"; // ← TAMBAHAN
 
 function App() {
   const dispatch = useDispatch();
@@ -36,18 +37,19 @@ function App() {
     <div>
       {(userGlobal.id || userGlobal.id_users) && <Navbar />}
       <Routes>
-        <Route path="/"               element={<Login />} />
-        <Route path="/register"       element={<Register />} />
-        <Route path="/maintenance"    element={<Maintenance />} />
-        <Route path="/pareto"         element={<Pareto />} />
-        <Route path="/createnew"      element={<CreateNew />} />
+        <Route path="/"                element={<Login />} />
+        <Route path="/register"        element={<Register />} />
+        <Route path="/maintenance"     element={<Maintenance />} />
+        <Route path="/pareto"          element={<Pareto />} />
+        <Route path="/createnew"       element={<CreateNew />} />
         <Route path="/createedite/:id" element={<CreateEdit />} />
-        <Route path="/building"       element={<AppPareto />} />
-        <Route path="/mail"           element={<CheckMail />} />
-        <Route path="/editprofile"    element={<EditProfile />} />
-        <Route path="/production"     element={<Production />} />
-        <Route path="/Utility"        element={<Utility />} />
-        <Route path="/audit-trail"    element={<AuditTrail />} />  {/* ← TAMBAHAN */}
+        <Route path="/building"        element={<AppPareto />} />
+        <Route path="/mail"            element={<CheckMail />} />
+        <Route path="/editprofile"     element={<EditProfile />} />
+        <Route path="/production"      element={<Production />} />
+        <Route path="/Utility"         element={<Utility />} />
+        <Route path="/audit-trail"     element={<AuditTrail />} />
+        <Route path="/administrator"   element={<Administrator />} /> {/* ← TAMBAHAN */}
       </Routes>
     </div>
   );

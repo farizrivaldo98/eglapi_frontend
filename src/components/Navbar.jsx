@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { logoutWithAudit } from "../features/part/userSlice";   // ← UBAH import
+import { logoutWithAudit } from "../features/part/userSlice";
 import { Menu, MenuButton, MenuList, MenuItem, MenuDivider } from "@chakra-ui/react";
 
 const navigation = [
@@ -26,12 +26,10 @@ export default function Navbar() {
   const navigate   = useNavigate();
   const location   = useLocation();
 
-  // ── logOut: catat LOGOUT dulu, baru bersihkan sesi ──────────
   const logOut = useCallback(async () => {
-    await dispatch(logoutWithAudit());   // ← pakai thunk baru
+    await dispatch(logoutWithAudit());
     navigate("/");
   }, [dispatch, navigate]);
-  // ────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!userGlobal.id_users && !userGlobal.id) return;
@@ -115,13 +113,13 @@ export default function Navbar() {
               </MenuButton>
 
               <MenuList
-                minW="180px"
+                minW="190px"
                 shadow="lg"
                 borderRadius="lg"
                 border="1px solid #e5e7eb"
                 zIndex={50}
               >
-                {/* Edit Profile */}
+                {/* Edit Profile — selalu tampil */}
                 <MenuItem
                   onClick={() => navigate("/editprofile")}
                   fontSize="sm"
@@ -130,9 +128,20 @@ export default function Navbar() {
                   ✏️ &nbsp; Edit Profile
                 </MenuItem>
 
-                {/* ── AUDIT TRAIL — hanya tampil untuk isAdmin == 1 ── */}
+                {/* ── Menu admin-only ── */}
                 {Number(userGlobal.isAdmin) === 1 && (
                   <>
+                    {/* Administrator */}
+                    <MenuItem
+                      onClick={() => navigate("/administrator")}
+                      fontSize="sm"
+                      _hover={{ bg: "purple.50" }}
+                      color="purple.600"
+                    >
+                      🛡️ &nbsp; Administrator
+                    </MenuItem>
+
+                    {/* Audit Trail */}
                     <MenuItem
                       onClick={() => navigate("/audit-trail")}
                       fontSize="sm"
@@ -143,7 +152,7 @@ export default function Navbar() {
                     </MenuItem>
                   </>
                 )}
-                {/* ─────────────────────────────────────────────────── */}
+                {/* ───────────────────── */}
 
                 <MenuDivider />
 
