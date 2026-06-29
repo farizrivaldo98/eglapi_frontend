@@ -23,7 +23,16 @@ const ROWS_PER_PAGE = 20;
 
 /* ── helpers ── */
 const formatIP   = (ip) => (!ip ? "—" : ip.replace("::ffff:", ""));
-const formatTime = (t)  => (!t  ? "—" : String(t).replace("T", " ").slice(0, 19));
+const formatTime = (t) => {
+  if (!t) return "—";
+  const str = String(t);
+  // Jika backend sudah return plain string "YYYY-MM-DD HH:MM:SS" (WIB) → langsung pakai
+  if (!str.includes("T") && !str.includes("Z")) return str.slice(0, 19);
+  // Fallback: ISO UTC string → convert ke WIB (UTC+7)
+  const date = new Date(str);
+  if (isNaN(date.getTime())) return str.slice(0, 19);
+  return date.toLocaleString("sv-SE", { timeZone: "Asia/Jakarta" });
+};
 
 /* ── sub-components ── */
 function ActionBadge({ action }) {
