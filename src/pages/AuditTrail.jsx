@@ -11,12 +11,12 @@ import {
 const BASE_URL = "http://10.163.0.66:8002";
 
 const ACTION_CFG = {
-  LOGIN:             { colorScheme: "green",  label: "Login",       icon: "🔑" },
-  LOGOUT:            { colorScheme: "red",    label: "Logout",      icon: "🚪" },
-  VIEW_UTILITY:      { colorScheme: "blue",   label: "Lihat Data",  icon: "👁️" },
-  EXPORT_PDF:        { colorScheme: "yellow", label: "Export PDF",  icon: "📄" },
-  ADMIN_EDIT_USER:   { colorScheme: "orange", label: "Edit User",   icon: "✏️" },
-  ADMIN_DELETE_USER: { colorScheme: "red",    label: "Hapus User",  icon: "🗑️" },
+  LOGIN:             { colorScheme: "green",  label: "Login"    },
+  LOGOUT:            { colorScheme: "red",    label: "Logout"    },
+  VIEW_UTILITY:      { colorScheme: "blue",   label: "Lihat Data"  },
+  EXPORT_PDF:        { colorScheme: "yellow", label: "Export PDF" },
+  ADMIN_EDIT_USER:   { colorScheme: "orange", label: "Edit User"},
+  ADMIN_DELETE_USER: { colorScheme: "red",    label: "Hapus User" },
 };
 
 const ROWS_PER_PAGE = 20;
@@ -201,7 +201,7 @@ export default function AuditTrail() {
     <div>
       {/* ── Page Header ────────────────────────────────────────── */}
       <div className="flex flex-row justify-between items-center mx-6 mt-6 mb-4">
-        <h2 className="text-xl font-bold text-text">📋 Audit Trail</h2>
+        <h2 className="text-xl font-bold text-text"> Audit Trail</h2>
         {fetched && (
           <Badge colorScheme="purple" fontSize="0.8em" px={3} py={1}>
             Total: {logs.length} data
@@ -256,12 +256,12 @@ export default function AuditTrail() {
               sx={{ color: tulisanColor }}
             >
               <option value="all">Semua Aksi</option>
-              <option value="LOGIN">🔑 Login</option>
-              <option value="LOGOUT">🚪 Logout</option>
-              <option value="VIEW_UTILITY">👁️ Lihat Data Utility</option>
-              <option value="EXPORT_PDF">📄 Export PDF</option>
-              <option value="ADMIN_EDIT_USER">✏️ Edit User</option>
-              <option value="ADMIN_DELETE_USER">🗑️ Hapus User</option>
+              <option value="LOGIN"> Login</option>
+              <option value="LOGOUT"> Logout</option>
+              <option value="VIEW_UTILITY"> Lihat Data Utility</option>
+              <option value="EXPORT_PDF"> Export PDF</option>
+              <option value="ADMIN_EDIT_USER"> Edit User</option>
+              <option value="ADMIN_DELETE_USER"> Hapus User</option>
             </Select>
           </div>
 
@@ -283,7 +283,7 @@ export default function AuditTrail() {
             );
           })}
           <Badge colorScheme="gray" fontSize="0.8em" px={3} py={1}>
-            📊 Total: {logs.length}
+             Total: {logs.length}
           </Badge>
         </div>
       )}
@@ -322,7 +322,7 @@ export default function AuditTrail() {
                     <Tr>
                       <Td colSpan={6} textAlign="center" display="table-cell" sx={{ color: tulisanColor }}>
                         {!fetched
-                          ? "⬆️ Pilih filter lalu klik Tampilkan"
+                          ? "  Pilih filter lalu klik Tampilkan"
                           : "Tidak ada data yang cocok dengan filter ini"}
                       </Td>
                     </Tr>
