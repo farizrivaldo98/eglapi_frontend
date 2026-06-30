@@ -79,7 +79,7 @@ export default function Navbar() {
           />
 
           {/* Nav Links */}
-          <div className="flex items-center gap-1 flex-1">
+          {/* <div className="flex items-center gap-1 flex-1">
             {allowedPages.map((item) => {
               const isActive =
                 location.pathname.toLowerCase() === item.path.toLowerCase();
@@ -97,7 +97,32 @@ export default function Navbar() {
                 </button>
               );
             })}
-          </div>
+          </div> */}
+
+          <div className="flex items-center gap-1 flex-1">
+  {navigation
+    .filter(item =>
+      allowedPages.some(page => page.name === item.name)
+    )
+    .map((item) => {
+      const isActive =
+        location.pathname.toLowerCase() === item.path.toLowerCase();
+
+      return (
+        <button
+          key={item.name}
+          onClick={() => navigate(item.path)}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition whitespace-nowrap ${
+            isActive
+              ? "bg-green-600 text-white"
+              : "text-gray-300 hover:bg-gray-700 hover:text-white"
+          }`}
+        >
+          {item.name}
+        </button>
+      );
+    })}
+</div>
           
 
           {/* User Menu */}
