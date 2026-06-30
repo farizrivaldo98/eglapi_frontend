@@ -1,12 +1,10 @@
 import React from "react";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router";
 import { loginData } from "../features/part/userSlice";
 
 function Login() {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -25,9 +23,16 @@ function Login() {
       password: password,
     };
     dispatch(loginData(tempData));
-    const timeout = setTimeout(() => {
-      navigate(0);
-    }, 2000);
+    // Redirect ke /home udah otomatis ditangani App.js begitu Redux
+    // userGlobal terisi — gak perlu navigate(0)/setTimeout lagi.
+  };
+
+  // ← BARU: Enter di field Initial/Password = sama kayak klik tombol Sign in,
+  // cuma jalan kalau dua field udah keisi (sama kayak kondisi disabled tombol).
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" && username && password) {
+      addLogin();
+    }
   };
 
   return (
@@ -55,6 +60,7 @@ function Login() {
             </label>
             <input
               onChange={usernameHandler}
+              onKeyDown={handleKeyDown}
               value={username}
               id="username"
               name="username"
@@ -74,6 +80,7 @@ function Login() {
             </label>
             <input
               onChange={passwordHandler}
+              onKeyDown={handleKeyDown}
               id="password"
               name="password"
               type="password"
