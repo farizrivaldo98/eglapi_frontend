@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
   import {
     Select,
     Input,
@@ -70,6 +71,7 @@ import { useState, useEffect, useRef } from "react";
     const [isDarkMode, setIsDarkMode] = useState(
       document.documentElement.getAttribute("data-theme") === "dark"
     );
+    const userGlobal = useSelector((state) => state.user.user);
 
     useEffect(() => {
       const fetchData = async () => {
@@ -466,11 +468,15 @@ import { useState, useEffect, useRef } from "react";
                 Submit
               </Button>
             </div>
-            <div className="ml-2 mt-7">
-              <Button onClick={exportToPDF} colorScheme="red">
-                Export to PDF
-              </Button>
-            </div>
+ <div className="ml-2 mt-7">
+  <Button 
+    onClick={exportToPDF} 
+    colorScheme="red"
+    isDisabled={userGlobal.level < 2}
+  >
+    Export to PDF
+  </Button>
+</div>
           </div>
         </div>
 
