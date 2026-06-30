@@ -70,7 +70,7 @@ function Login() {
               required
               style={{ textTransform: "uppercase" }}
               className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
-              placeholder="Contoh: ABC"
+              placeholder="Initial"
             />
           </div>
 
