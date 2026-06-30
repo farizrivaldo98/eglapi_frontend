@@ -1,5 +1,7 @@
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 
 const modules = [
   { name: "Maintenance", path: "/maintenance", color: "border-orange-400" },
@@ -8,11 +10,20 @@ const modules = [
   { name: "Building",    path: "/building",    color: "border-purple-400" },
 ];
 
+
+
 // Starting point — ganti isinya sesuai kebutuhan (ringkasan audit trail
 // terbaru, status alarm, dsb). Path module di atas ngikutin App.js.
 export default function HomePage() {
+  const [allowedPages, setAllowedPages] = useState([]);
   const userGlobal = useSelector((state) => state.user.user);
   const navigate = useNavigate();
+
+  useEffect(() => {
+  // Fetch data yang sama seperti di Navbar
+  axios.get("http://10.163.0.66:8002/admin/page-access", { ... })
+    .then(res => setAllowedPages(res.data[userGlobal.level] || []));
+}, [userGlobal.level]);
 
   return (
     <div className="min-h-screen bg-gray-100 px-8 py-10">
@@ -21,17 +32,24 @@ export default function HomePage() {
       </h1>
       <p className="text-gray-500 mb-8">PT. Lapi Laboratories — Internal System</p>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {modules.map((item) => (
-          <button
-            key={item.path}
-            onClick={() => navigate(item.path)}
-            className={`bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition text-left border-t-4 ${item.color}`}
-          >
-            <span className="font-semibold text-gray-700">{item.name}</span>
-          </button>
-        ))}
-      </div>
+<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+  {modules
+    .filter(m =>
+      allowedPages.some(p =>
+        typeof p === "string"
+          ? p === m.name
+          : p.name === m.name
+      )
+    )
+    .map((item) => (
+      <button
+        key={item.path}
+        onClick={() => navigate(item.path)}
+      >
+        {item.name}
+      </button>
+    ))}
+</div>
     </div>
   );
 }
