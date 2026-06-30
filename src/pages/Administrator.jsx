@@ -2,7 +2,7 @@ import {
   Tabs, TabList, TabPanels, Tab, TabPanel,
 } from "@chakra-ui/react";
 import UserManagement from "./Usermanagement";
-import PageManagement from "./Pagemanagement";
+import PageManagement from "./Pagemanagement ";
 
 export default function Administrator() {
   return (
