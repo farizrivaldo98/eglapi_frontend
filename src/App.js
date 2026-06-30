@@ -8,7 +8,7 @@ import CreateEdit from "./pages/CreateEdit";
 import AppPareto from "./pages/building";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import HomePage from "./pages/HomePage"; // ← BARU
+import HomePage from "./pages/Homepage"; // ← BARU
 import { CheckLogin } from "./features/part/userSlice";
 import { useDispatch, useSelector } from "react-redux";
 import { useEffect } from "react";
