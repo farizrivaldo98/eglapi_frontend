@@ -171,7 +171,7 @@ export default function Navbar() {
                   fontSize="sm"
                   _hover={{ bg: "gray.50" }}
                 >
-                  ✏️ &nbsp; Edit Profile
+                   Edit Profile
                 </MenuItem>
 
                 {/* ── Menu admin-only ── */}
@@ -184,7 +184,7 @@ export default function Navbar() {
                       _hover={{ bg: "purple.50" }}
                       color="purple.600"
                     >
-                      🛡️ &nbsp; Administrator
+                     Administrator
                     </MenuItem>
 
                     {/* Audit Trail */}
@@ -194,7 +194,7 @@ export default function Navbar() {
                       _hover={{ bg: "blue.50" }}
                       color="blue.600"
                     >
-                      📋 &nbsp; Audit Trail
+                       Audit Trail
                     </MenuItem>
                   </>
                 )}
@@ -209,7 +209,7 @@ export default function Navbar() {
                   color="red.500"
                   _hover={{ bg: "red.50" }}
                 >
-                  🚪 &nbsp; Logout
+                   Logout
                 </MenuItem>
               </MenuList>
             </Menu>

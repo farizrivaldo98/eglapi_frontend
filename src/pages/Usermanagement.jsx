@@ -223,7 +223,7 @@ export default function UserManagement() {
     <div>
       {/* ── Header ──────────────────────────────────────────── */}
       <div className="flex flex-row justify-between items-center mx-6 mt-2 mb-4">
-        <h2 className="text-lg font-bold text-text">👤 User Management</h2>
+        <h2 className="text-lg font-bold text-text">User Management</h2>
         <Badge colorScheme="green" fontSize="0.8em" px={3} py={1}>
           Total: {users.length} user
         </Badge>

@@ -26,7 +26,7 @@ const API = "http://10.163.0.66:8002";
 // ──────────────────────────────────────────────────────────────
 
 const LEVELS = [1, 2, 3, 4, 5];
-const LEVEL_COLOR = { 1: "gray", 2: "blue", 3: "green", 4: "orange", 5: "red" };
+
 
 // Samain warna aksen sama kartu module di Homepage (border-orange-400 dst)
 const PAGES = [
@@ -143,7 +143,7 @@ export default function PageManagement() {
     <div>
       {/* ── Header ──────────────────────────────────────────── */}
       <div className="flex flex-row justify-between items-center mx-6 mt-2 mb-4">
-        <h2 className="text-lg font-bold text-text">🗂️ Page Management</h2>
+        <h2 className="text-lg font-bold text-text">Page Management</h2>
         <Stack direction="row" spacing={2}>
           <Button
             size="sm"
@@ -210,7 +210,7 @@ export default function PageManagement() {
                   {LEVELS.map((lvl) => (
                     <Tr key={lvl}>
                       <Td>
-                        <Badge colorScheme={LEVEL_COLOR[lvl]}>Level {lvl}</Badge>
+                        <Badge colorScheme="blue">Level {lvl}</Badge>
                       </Td>
                       {PAGES.map((p) => (
                         <Td key={p.key} textAlign="center">

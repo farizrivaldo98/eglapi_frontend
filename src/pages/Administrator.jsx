@@ -9,7 +9,7 @@ export default function Administrator() {
     <div>
       {/* ── Page Title ─────────────────────────────────────────────── */}
       <div className="mx-6 mt-6 mb-1">
-        <h1 className="text-2xl font-bold text-text">🛡️ Administrator</h1>
+        <h1 className="text-2xl font-bold text-text">Administrator</h1>
         <p className="text-sm text-gray-400">
           Kelola akun user & atur akses halaman per level.
         </p>
@@ -19,10 +19,10 @@ export default function Administrator() {
       <Tabs colorScheme="green" variant="soft-rounded" isLazy>
         <TabList mx="6" mt="4" gap={2}>
           <Tab fontSize="sm" fontWeight="medium">
-            👤&nbsp; User Management
+            User Management
           </Tab>
           <Tab fontSize="sm" fontWeight="medium">
-            🗂️&nbsp; Page Management
+              Page Management
           </Tab>
         </TabList>
 
