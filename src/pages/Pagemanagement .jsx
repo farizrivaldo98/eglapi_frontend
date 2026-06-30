@@ -112,7 +112,7 @@ export default function PageManagement() {
     setSaving(true);
     try {
       const token = localStorage.getItem("user_token");
-      await axios.put(`${API}/part/page-access`, matrix, {
+      await axios.put(`${API}/admin/page-access`, matrix, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
