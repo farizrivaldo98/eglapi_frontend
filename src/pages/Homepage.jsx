@@ -19,11 +19,26 @@ export default function HomePage() {
   const userGlobal = useSelector((state) => state.user.user);
   const navigate = useNavigate();
 
-  useEffect(() => {
-  // Fetch data yang sama seperti di Navbar
-  axios.get("http://10.163.0.66:8002/admin/page-access", { ... })
-    .then(res => setAllowedPages(res.data[userGlobal.level] || []));
-}, [userGlobal.level]);
+useEffect(() => {
+  const fetchAccess = async () => {
+    try {
+      const token = localStorage.getItem("user_token");
+
+      const res = await axios.get(
+        "http://10.163.0.66:8002/admin/page-access",
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      setAllowedPages(res.data[userGlobal.level] || []);
+    } catch (err) {
+      console.error("Gagal load access", err);
+    }
+  };
+
+  if (userGlobal?.level) fetchAccess();
+}, [userGlobal?.level]);
 
   return (
     <div className="min-h-screen bg-gray-100 px-8 py-10">
