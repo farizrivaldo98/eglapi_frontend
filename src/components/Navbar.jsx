@@ -181,7 +181,7 @@ export default function Navbar() {
                     <MenuItem
                       onClick={() => navigate("/administrator")}
                       fontSize="sm"
-                      _hover={{ bg: "purple.50" }}
+                      _hover={{ bg: "gray.50" }}
                       color="purple.600"
                     >
                      Administrator
@@ -191,7 +191,7 @@ export default function Navbar() {
                     <MenuItem
                       onClick={() => navigate("/audit-trail")}
                       fontSize="sm"
-                      _hover={{ bg: "blue.50" }}
+                      _hover={{ bg: "gray.50" }}
                       color="blue.600"
                     >
                        Audit Trail
