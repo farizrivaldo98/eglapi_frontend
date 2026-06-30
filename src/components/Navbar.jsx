@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logoutWithAudit } from "../features/part/userSlice";
@@ -21,6 +21,7 @@ function formatName(name = "") {
 }
 
 export default function Navbar() {
+  const [allowedPages, setAllowedPages] = useState([]);
   const userGlobal = useSelector((state) => state.user.user);
   const dispatch   = useDispatch();
   const navigate   = useNavigate();
@@ -41,6 +42,24 @@ export default function Navbar() {
         logOut();
       }, IDLE_TIMEOUT);
     };
+
+    useEffect(() => {
+  const fetchAccess = async () => {
+    try {
+      const token = localStorage.getItem("user_token");
+      const res = await axios.get("http://10.163.0.66:8002/admin/page-access", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // Ambil array halaman sesuai level user yang login
+      setAllowedPages(res.data[userGlobal.level] || []);
+    } catch (err) {
+      console.error("Gagal load menu", err);
+    }
+  };
+  if (userGlobal.level) fetchAccess();
+}, [userGlobal.level]);
+
+
     const events = ["mousemove", "keydown", "click", "scroll"];
     events.forEach((e) => window.addEventListener(e, resetTimer));
     resetTimer();
@@ -64,7 +83,7 @@ export default function Navbar() {
 
           {/* Nav Links */}
           <div className="flex items-center gap-1 flex-1">
-            {navigation.map((item) => {
+            {allowedPages.map((item) => {
               const isActive =
                 location.pathname.toLowerCase() === item.path.toLowerCase();
               return (
@@ -82,6 +101,7 @@ export default function Navbar() {
               );
             })}
           </div>
+          
 
           {/* User Menu */}
           <div className="flex-shrink-0">
