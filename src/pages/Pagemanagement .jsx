@@ -13,11 +13,11 @@ const API = "http://10.163.0.66:8002";
 // ──────────────────────────────────────────────────────────────
 // Kontrak API yang dibutuhkan dari backend (belum ada → perlu dibuat):
 //
-//   GET  /admin/page-access
+//   GET  /part/page-access
 //     -> { "1": ["Maintenance"], "2": ["Maintenance","Utility"], ... }
 //        key = level (1-5), value = array nama page yang diizinkan
 //
-//   PUT  /admin/page-access     (body = object persis seperti di atas)
+//   PUT  /part/page-access     (body = object persis seperti di atas)
 //     -> overwrite seluruh matrix dengan yang baru
 //
 // Sebelum endpoint ini ada di backend, tab ini akan menampilkan toast
@@ -57,7 +57,7 @@ export default function PageManagement() {
     setLoading(true);
     try {
       const token = localStorage.getItem("user_token");
-      const res   = await axios.get(`${API}/admin/page-access`, {
+      const res   = await axios.get(`${API}/part/page-access`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -112,7 +112,7 @@ export default function PageManagement() {
     setSaving(true);
     try {
       const token = localStorage.getItem("user_token");
-      await axios.put(`${API}/admin/page-access`, matrix, {
+      await axios.put(`${API}/part/page-access`, matrix, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
