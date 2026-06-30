@@ -99,10 +99,14 @@ export default function Navbar() {
             })}
           </div> */}
 
-          <div className="flex items-center gap-1 flex-1">
+<div className="flex items-center gap-1 flex-1">
   {navigation
     .filter(item =>
-      allowedPages.some(page => page.name === item.name)
+      allowedPages.some(page =>
+        typeof page === "string"
+          ? page === item.name
+          : page.name === item.name
+      )
     )
     .map((item) => {
       const isActive =
