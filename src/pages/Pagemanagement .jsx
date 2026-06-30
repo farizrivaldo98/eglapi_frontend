@@ -30,10 +30,10 @@ const LEVEL_COLOR = { 1: "gray", 2: "blue", 3: "green", 4: "orange", 5: "red" };
 
 // Samain warna aksen sama kartu module di Homepage (border-orange-400 dst)
 const PAGES = [
-  { key: "Maintenance", label: "Maintenance", emoji: "🔧", accent: "orange" },
-  { key: "Utility",     label: "Utility",     emoji: "⚡", accent: "blue"   },
-  { key: "Production",  label: "Production",  emoji: "🏭", accent: "green" },
-  { key: "Building",    label: "Building",    emoji: "🏢", accent: "purple" },
+  { key: "Maintenance", label: "Maintenance", accent: "orange" },
+  { key: "Utility",     label: "Utility",      accent: "blue"   },
+  { key: "Production",  label: "Production",   accent: "green" },
+  { key: "Building",    label: "Building",     accent: "purple" },
 ];
 
 export default function PageManagement() {
