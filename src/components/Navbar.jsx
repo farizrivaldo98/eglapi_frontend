@@ -42,7 +42,15 @@ export default function Navbar() {
         logOut();
       }, IDLE_TIMEOUT);
     };
-
+    const events = ["mousemove", "keydown", "click", "scroll"];
+    events.forEach((e) => window.addEventListener(e, resetTimer));
+    resetTimer();
+    return () => {
+      clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, resetTimer));
+    };
+  }, [userGlobal.id_users, userGlobal.id, logOut]);
+  
     useEffect(() => {
   const fetchAccess = async () => {
     try {
@@ -58,17 +66,6 @@ export default function Navbar() {
   };
   if (userGlobal.level) fetchAccess();
 }, [userGlobal.level]);
-
-
-    const events = ["mousemove", "keydown", "click", "scroll"];
-    events.forEach((e) => window.addEventListener(e, resetTimer));
-    resetTimer();
-    return () => {
-      clearTimeout(timer);
-      events.forEach((e) => window.removeEventListener(e, resetTimer));
-    };
-  }, [userGlobal.id_users, userGlobal.id, logOut]);
-
   return (
     <nav className="bg-gray-900 border-b border-gray-700 shadow-md">
       <div className="px-4 lg:px-8">
