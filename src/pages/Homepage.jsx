@@ -25,7 +25,7 @@ useEffect(() => {
       const token = localStorage.getItem("user_token");
 
       const res = await axios.get(
-        "http://10.163.0.66:8002/admin/page-access",
+        "http://10.163.0.66:8002/part/page-access",
         {
           headers: { Authorization: `Bearer ${token}` }
         }
