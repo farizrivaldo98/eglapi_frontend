@@ -7,7 +7,7 @@ const modules = [
   { name: "Maintenance", path: "/maintenance" },
   { name: "Utility",     path: "/Utility"},
   { name: "Production",  path: "/production"},
-  { name: "Building",    path: "/building"},
+  { name: "Chiller",    path: "/Chiller"},
     { name: "Scadamonitor",    path: "/Scadamonitor"},
 ];
 

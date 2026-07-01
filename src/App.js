@@ -5,7 +5,7 @@ import Maintenance from "./pages/Maintenance";
 import Pareto from "./pages/ParetoData";
 import CreateNew from "./pages/CreateNew";
 import CreateEdit from "./pages/CreateEdit";
-import AppPareto from "./pages/building";
+import AppPareto from "./pages/Chiller";
 import ScadaMonitor from "./pages/Scadamonitor";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -29,7 +29,7 @@ const LEVEL_PAGE = {
   maintenance: "Maintenance",
   production: "Production",
   utility: "Utility",
-  building: "Building",
+  Chiller: "Chiller",
 };
 
 function App() {
@@ -120,12 +120,12 @@ function App() {
         <Route path="/createnew" element={<CreateNew />} />
         <Route path="/createedite/:id" element={<CreateEdit />} />
         <Route
-          path="/building"
+          path="/Chiller"
           element={
             <ProtectedRoute
               isLoggedIn={isLoggedIn}
               ready={pageAccessReady}
-              allow={canAccess(LEVEL_PAGE.building)}
+              allow={canAccess(LEVEL_PAGE.Chiller)}
             >
               <AppPareto />
             </ProtectedRoute>
