@@ -6,6 +6,7 @@ import {
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure,
   useColorModeValue, useToast
 } from "@chakra-ui/react";
+import { useSelector } from "react-redux";
 
 const STATIONS = [
   { station: "Stripping3",    vars: { Tx: "Tx_Stripping3",    Rx: "Rx_Stripping3",    Px: "Px_Stripping3" } },
@@ -43,7 +44,7 @@ export default function Scadamonitor() {
   const [editSpL, setEditSpL] = useState("");
   const [editSpH, setEditSpH] = useState("");
   const [editTimer, setEditTimer] = useState("");
-
+  const userGlobal = useSelector((state) => state.user.user);
   const connectWS = () => {
     setStatus("connecting");
     if (wsRef.current) wsRef.current.close();
@@ -223,7 +224,7 @@ export default function Scadamonitor() {
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onClose}>Cancel</Button>
-            <Button colorScheme="blue" onClick={handleSaveToPlc}>Save to PLC</Button>
+            <Button colorScheme="blue" isDisabled={userGlobal.level == 5} onClick={handleSaveToPlc}>Save to PLC</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
