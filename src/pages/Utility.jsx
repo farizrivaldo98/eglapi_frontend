@@ -423,8 +423,8 @@ const exportToPDF = async () => {
       doc.setGState(new doc.GState({ opacity: 0.15 }));
 
       // Ukuran watermark (Diperbesar dari logo asli agar proporsinya tetap 25:12)
-      const wmWidth = 125;
-      const wmHeight = 60; 
+      const wmWidth = 160;
+      const wmHeight = 80; 
 
       // 2. Sisipkan logo Lapi di posisi tengah halaman dengan kemiringan 45 derajat
       doc.addImage({
