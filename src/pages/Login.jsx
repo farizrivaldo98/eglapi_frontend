@@ -93,15 +93,12 @@ function Login() {
 
           {/* Remember me + Register */}
           <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-              />
-              Remember me
-            </label>
+           <a
+              href="Scadamonitor"
+              className="text-sm font-medium text-green-600 hover:text-green-500 transition"
+            >
+              EMS realtime
+            </a>
             <a
               href="register"
               className="text-sm font-medium text-green-600 hover:text-green-500 transition"
