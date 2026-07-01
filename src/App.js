@@ -6,6 +6,7 @@ import Pareto from "./pages/ParetoData";
 import CreateNew from "./pages/CreateNew";
 import CreateEdit from "./pages/CreateEdit";
 import AppPareto from "./pages/building";
+import ScadaMonitor from "./pages/Scadamonitor";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import HomePage from "./pages/Homepage"; // ← BARU
@@ -100,6 +101,7 @@ function App() {
           element={isLoggedIn ? <HomePage /> : <Navigate to="/" replace />}
         />
         <Route path="/register" element={<Register />} />
+        <Route path="/Scadamonitor" element={<ScadaMonitor/>} />
 
         {/* ← DIUBAH: 4 halaman ini sekarang ngikutin matrix Page Management di DB */}
         <Route
