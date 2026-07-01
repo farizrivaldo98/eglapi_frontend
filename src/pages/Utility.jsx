@@ -298,7 +298,7 @@ const exportToPDF = async () => {
     doc.text(
       "Jl. Kawasan Industri Modern Kav. 18, Industrial Estate, Cikande, Nambo Ilir, Serang, Kabupaten Serang, Banten 42186",
       pageWidth / 2,
-      17.5, // Posisi Y diturunkan sedikit dari judul
+      19.5, // Posisi Y diturunkan sedikit dari judul
       { align: "center" }
     );
 
@@ -306,7 +306,7 @@ const exportToPDF = async () => {
     doc.text(
       "Phone: (0254) 402150, Fax (0254)402151, Homepage: www.lapilaboratories.com",
       pageWidth / 2,
-      20, // Posisi Y diturunkan sedikit dari alamat
+      22, // Posisi Y diturunkan sedikit dari alamat
       { align: "center" }
     );
 
