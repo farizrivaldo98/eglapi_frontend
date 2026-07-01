@@ -224,7 +224,14 @@ export default function Scadamonitor() {
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onClose}>Cancel</Button>
-            <Button colorScheme="blue" onClick={handleSaveToPlc} isDisabled={userGlobal.level === 5}>Save to PLC</Button>
+
+              <Button 
+    onClick={handleSaveToPlc} 
+    colorScheme="red"
+    isDisabled={userGlobal.level < 2}
+  >
+    Save to PLC
+  </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
