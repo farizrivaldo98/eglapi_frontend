@@ -237,15 +237,15 @@ export default function Scadamonitor() {
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="font-semibold text-gray-500">High Limit (SP_H)</span>
-                <Input size="sm" width="120px" type="number" step="0.1" value={editSpH}  isDisabled={userGlobal.level < 5 ||userGlobal.level == null } onChange={(e) => setEditSpH(e.target.value)} />
+                <Input size="sm" width="120px" type="number" step="0.1" value={editSpH}  isDisabled={userGlobal.level < 3 ||userGlobal.level == null } onChange={(e) => setEditSpH(e.target.value)} />
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="font-semibold text-gray-500">Low Limit (SP_L)</span>
-                <Input size="sm" width="120px" type="number" step="0.1" value={editSpL} isDisabled={userGlobal.level < 5 ||userGlobal.level == null } onChange={(e) => setEditSpL(e.target.value)} />
+                <Input size="sm" width="120px" type="number" step="0.1" value={editSpL} isDisabled={userGlobal.level < 3 ||userGlobal.level == null } onChange={(e) => setEditSpL(e.target.value)} />
               </div>
               <div className="flex justify-between items-center pb-2">
                 <span className="font-semibold text-gray-500">Timer Limit</span>
-                <Input size="sm" width="120px" type="number" value={editTimer} isDisabled={userGlobal.level < 5 ||userGlobal.level == null } onChange={(e) => setEditTimer(e.target.value)} />
+                <Input size="sm" width="120px" type="number" value={editTimer} isDisabled={userGlobal.level < 3 ||userGlobal.level == null } onChange={(e) => setEditTimer(e.target.value)} />
               </div>
             </Stack>
           </ModalBody>
@@ -254,7 +254,7 @@ export default function Scadamonitor() {
             <Button 
               onClick={handleSaveToPlc} 
               colorScheme="blue"
-              isDisabled={userGlobal.level < 5 ||userGlobal.level == null }
+              isDisabled={userGlobal.level < 3 ||userGlobal.level == null }
               isLoading={saving}
               loadingText="Saving..."
             >
