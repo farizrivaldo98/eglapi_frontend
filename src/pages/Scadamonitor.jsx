@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Table, Thead, Tbody, Tr, Th, Td,
-  TableCaption, TableContainer,
-  Badge, Stack, Input, Button,
-  useColorMode, useColorModeValue,
+  TableContainer, Badge, Stack, Button,
+  Modal, ModalOverlay, ModalContent, ModalHeader, 
+  ModalCloseButton, ModalBody, ModalFooter, useDisclosure,
+  useColorModeValue
 } from "@chakra-ui/react";
 
-// Stasiun diturunkan langsung dari address table DB3 (Correction_SV) —
-// harus sama persis dengan vartable di flow Node-RED.
+// Stasiun diturunkan dari flow Node-RED
 const STATIONS = [
   { station: "Stripping3",    vars: { Tx: "Tx_Stripping3",    Rx: "Rx_Stripping3",    Px: "Px_Stripping3" } },
   { station: "Blistering2",   vars: { Tx: "Tx_Blistering2",   Rx: "Rx_Blistering2",   Px: "Px_Blistering2" } },
@@ -29,193 +29,212 @@ const STATIONS = [
   { station: "CoatingSP1",    vars: { Tx: "Tx_CoatingSP1",    Rx: "Rx_CoatingSP1",    Px: "Px_CoatingSP1" } },
 ];
 
-const DEFAULT_WS_URL = "ws://10.163.0.66:1880/ws/scada";
+const DEFAULT_WS_URL = "ws://10.163.0.66:1880/ws/scada"; // Sesuaikan dengan IP bapak
+const STATUS_COLOR = { live: "green", connecting: "orange", down: "red" };
 
-const STATUS_COLOR = {
-  live: "green",
-  connecting: "orange",
-  down: "red",
-};
+export default function Scadamonitor() {
+  const [data, setData] = useState({});
+  const [status, setStatus] = useState("down");
+  const wsRef = useRef(null);
 
-const STATUS_LABEL = {
-  live: "Live",
-  connecting: "Connecting…",
-  down: "Terputus — mencoba lagi 3s",
-};
+  // Modal Setup
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [popupData, setPopupData] = useState(null);
 
-function fmt(n) {
-  return typeof n === "number" ? n.toFixed(2) : String(n);
-}
-
-export default function ScadaMonitor() {
-  const [wsUrl, setWsUrl]         = useState(DEFAULT_WS_URL);
-  const [status, setStatus]       = useState("connecting");
-  const [values, setValues]       = useState({});   // { tagName: "12.34" }
-  const [flashKey, setFlashKey]   = useState(null); // last-updated tag, for highlight
-  const [tagCount, setTagCount]   = useState(0);
-  const [lastUpdate, setLastUpdate] = useState("—");
-
-  const wsRef    = useRef(null);
-  const retryRef = useRef(null);
-  const flashTimeoutRef = useRef(null);
-
-  // ── theming (same pattern as UserManagement.jsx) ────────────
-  const { colorMode } = useColorMode();
-  const tulisanColor  = useColorModeValue(
-    "rgba(var(--color-text))",
-    "rgba(var(--color-text))"
-  );
-  // ─────────────────────────────────────────────────────────────
-
-  const connect = () => {
-    if (retryRef.current) { clearTimeout(retryRef.current); retryRef.current = null; }
-    if (wsRef.current) { try { wsRef.current.onclose = null; wsRef.current.close(); } catch (e) {} }
-
+  const connectWS = () => {
     setStatus("connecting");
-
-    let socket;
-    try {
-      socket = new WebSocket(wsUrl.trim());
-    } catch (err) {
-      setStatus("down");
-      return;
-    }
-    wsRef.current = socket;
-
-    socket.onopen = () => setStatus("live");
-
-    socket.onclose = () => {
-      setStatus("down");
-      retryRef.current = setTimeout(connect, 3000);
+    if (wsRef.current) wsRef.current.close();
+    const ws = new WebSocket(DEFAULT_WS_URL);
+    ws.onopen = () => setStatus("live");
+    ws.onclose = () => setStatus("down");
+    ws.onerror = () => setStatus("down");
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.data) {
+          setData((prev) => ({ ...prev, ...payload.data })); // Data DB1 & DB3 otomatis tergabung di sini
+        }
+      } catch (e) {
+        console.error("WS Parse Error:", e);
+      }
     };
-
-    socket.onerror = () => { /* onclose akan menyusul dan menangani retry */ };
-
-    socket.onmessage = (evt) => {
-      let msg;
-      try { msg = JSON.parse(evt.data); } catch (e) { return; }
-      const data = msg.data || msg; // toleran kalau Function node format dilewati
-      if (!data || typeof data !== "object") return;
-
-      let count = 0;
-      const updatedKey = Object.keys(data)[0];
-
-      setValues((prev) => {
-        const next = { ...prev };
-        Object.keys(data).forEach((key) => {
-          count++;
-          next[key] = fmt(data[key]);
-        });
-        return next;
-      });
-
-      setTagCount(count);
-      setLastUpdate((msg.ts ? new Date(msg.ts) : new Date()).toLocaleTimeString("id-ID"));
-
-      setFlashKey(updatedKey);
-      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-      flashTimeoutRef.current = setTimeout(() => setFlashKey(null), 700);
-    };
+    wsRef.current = ws;
   };
 
   useEffect(() => {
-    connect();
-    return () => {
-      if (retryRef.current) clearTimeout(retryRef.current);
-      if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-      if (wsRef.current) { try { wsRef.current.onclose = null; wsRef.current.close(); } catch (e) {} }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    connectWS();
+    return () => wsRef.current?.close();
   }, []);
 
-  // ── render table rows: satu baris per stasiun ────────────────
-  const renderTable = () => {
-    return STATIONS.map(({ station, vars }) => (
-      <Tr key={station}>
-        <Td sx={{ color: tulisanColor }}>{station}</Td>
-        {["Tx", "Rx", "Px"].map((k) => {
-          const tag = vars[k];
-          const isFlash = flashKey === tag;
-          return (
-            <Td
-              key={k}
-              fontFamily="mono"
-              fontVariantNumeric="tabular-nums"
-              fontWeight="600"
-              bg={isFlash ? "teal.100" : "transparent"}
-              transition="background 0.7s ease-out"
-              sx={{ color: tulisanColor }}
-            >
-              {values[tag] ?? "—"}
-            </Td>
-          );
-        })}
-      </Tr>
-    ));
+  // Event handler ketika Tag diklik
+  const handleTagClick = (station, type, val) => {
+    // Mapping: Tx -> Temp, Rx -> Rh, Px -> Dp (menyesuaikan format penamaan tag di DB1)
+    const typeName = type === 'Tx' ? 'Temp' : type === 'Rx' ? 'Rh' : 'Dp';
+    
+    const spL = data[`${typeName}_${station}_SP_L`];
+    const spH = data[`${typeName}_${station}_SP_H`];
+    const timer = data[`Min_${type}_${station}`];
+    
+    setPopupData({
+      station,
+      type,
+      val: val,
+      spL: spL !== undefined ? spL : 'N/A',
+      spH: spH !== undefined ? spH : 'N/A',
+      timer: timer !== undefined ? timer : 'N/A'
+    });
+    onOpen();
   };
-  // ───────────────────────────────────────────────────────────────
+
+  // Pengecekan status alarm berdasarkan range limit
+  const isAlarm = (station, type, val) => {
+    if (val === undefined || val === null) return false;
+    const typeName = type === 'Tx' ? 'Temp' : type === 'Rx' ? 'Rh' : 'Dp';
+    
+    const spL = data[`${typeName}_${station}_SP_L`];
+    const spH = data[`${typeName}_${station}_SP_H`];
+    
+    if (spL !== undefined && val < spL) return true;
+    if (spH !== undefined && val > spH) return true;
+    return false;
+  };
+
+  // Pengaturan UI tabel agar garis lebih terlihat
+  const borderColor = useColorModeValue("gray.400", "gray.600");
+  const tdStyles = {
+    borderWidth: "2px",
+    borderColor: borderColor,
+    textAlign: "center",
+    transition: "0.2s ease"
+  };
 
   return (
-    <div>
-      {/* ── Header ──────────────────────────────────────────── */}
-      <div className="flex flex-row justify-between items-center mx-6 mt-2 mb-4 flex-wrap gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-text">SCADA Live Monitor</h2>
-          <p className="text-xs text-gray-400">S7-1200 · DB3 Correction_SV</p>
-        </div>
+    <div className="flex flex-col min-h-screen bg-background">
+      <style>{`
+        @keyframes alertBlink {
+          0%, 100% { background-color: transparent; }
+          50% { background-color: #fca5a5; color: #7f1d1d; }
+        }
+        .blinking-alarm {
+          animation: alertBlink 1s infinite ease-in-out;
+          font-weight: bold;
+          cursor: pointer;
+        }
+        .normal-cell {
+          cursor: pointer;
+        }
+        .normal-cell:hover {
+          background-color: rgba(0,0,0,0.05);
+        }
+      `}</style>
 
-        <Stack direction="row" spacing={3} align="center" flexWrap="wrap">
-          <Input
-            size="sm"
-            width={{ base: "100%", md: "300px" }}
-            fontFamily="mono"
-            fontSize="xs"
-            value={wsUrl}
-            onChange={(e) => setWsUrl(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") connect(); }}
-          />
-          <Button size="sm" onClick={connect}>
-            Connect
-          </Button>
-          <Badge colorScheme={STATUS_COLOR[status]} fontSize="0.8em" px={3} py={1}>
-            {STATUS_LABEL[status]}
-          </Badge>
-        </Stack>
+      {/* Control Bar (Bisa disesuaikan dengan layout Bapak sebelumnya) */}
+      <div className="p-4 flex gap-4 items-center">
+        <Button onClick={connectWS} size="sm" colorScheme="blue">Reconnect WS</Button>
+        <Badge colorScheme={STATUS_COLOR[status]}>STATUS: {status.toUpperCase()}</Badge>
       </div>
 
-      <div className="flex flex-row gap-6 mx-6 mb-4">
-        <Badge colorScheme="gray" fontSize="0.75em">
-          Tags {tagCount}/54
-        </Badge>
-        <Badge colorScheme="gray" fontSize="0.75em">
-          Stations {STATIONS.length}
-        </Badge>
-        <Badge colorScheme="gray" fontSize="0.75em">
-          Update terakhir: {lastUpdate}
-        </Badge>
+      <div className="mx-6 mb-4 bg-card rounded-md shadow-lg p-2">
+        <TableContainer>
+          <Table variant="simple" size="sm">
+            <Thead>
+              <Tr>
+                <Th sx={tdStyles}>Station</Th>
+                <Th sx={tdStyles}>Tx (Temp)</Th>
+                <Th sx={tdStyles}>Rx (RH)</Th>
+                <Th sx={tdStyles}>Px (DP)</Th>
+                <Th sx={tdStyles}>Buzzer Status</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {STATIONS.map((st) => {
+                const txVal = data[st.vars.Tx];
+                const rxVal = data[st.vars.Rx];
+                const pxVal = data[st.vars.Px];
+                const buzzerActive = data[`Buzzer_${st.station}`] === true;
+
+                return (
+                  <Tr key={st.station}>
+                    <Td sx={{...tdStyles, textAlign: "left", fontWeight: "bold"}}>
+                      {st.station}
+                    </Td>
+                    
+                    <Td 
+                      sx={tdStyles}
+                      className={isAlarm(st.station, 'Tx', txVal) ? 'blinking-alarm' : 'normal-cell'}
+                      onClick={() => handleTagClick(st.station, 'Tx', txVal)}
+                    >
+                      {txVal !== undefined ? txVal.toFixed(1) : '-'}
+                    </Td>
+
+                    <Td 
+                      sx={tdStyles}
+                      className={isAlarm(st.station, 'Rx', rxVal) ? 'blinking-alarm' : 'normal-cell'}
+                      onClick={() => handleTagClick(st.station, 'Rx', rxVal)}
+                    >
+                      {rxVal !== undefined ? rxVal.toFixed(1) : '-'}
+                    </Td>
+
+                    <Td 
+                      sx={tdStyles}
+                      className={isAlarm(st.station, 'Px', pxVal) ? 'blinking-alarm' : 'normal-cell'}
+                      onClick={() => handleTagClick(st.station, 'Px', pxVal)}
+                    >
+                      {pxVal !== undefined ? pxVal.toFixed(1) : '-'}
+                    </Td>
+
+                    <Td sx={tdStyles}>
+                      {buzzerActive ? (
+                        <Badge colorScheme="red" className="animate-pulse">🚨 ACTIVE</Badge>
+                      ) : (
+                        <Badge colorScheme="green">OK</Badge>
+                      )}
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </Tbody>
+          </Table>
+        </TableContainer>
       </div>
 
-      {/* ── Table ───────────────────────────────────────────── */}
-      <div className="mt-4 mx-6 bg-card rounded-md shadow-lg">
-        <div className="overflow-x-auto">
-          <TableContainer>
-            <Table key={colorMode} variant="simple" size="sm">
-              <TableCaption sx={{ color: tulisanColor }}>
-                SCADA Live Monitor — PT. Lapi Laboratories
-              </TableCaption>
-              <Thead>
-                <Tr>
-                  <Th sx={{ color: tulisanColor }}>Station</Th>
-                  <Th sx={{ color: tulisanColor }}>Tx</Th>
-                  <Th sx={{ color: tulisanColor }}>Rx</Th>
-                  <Th sx={{ color: tulisanColor }}>Px</Th>
-                </Tr>
-              </Thead>
-              <Tbody>{renderTable()}</Tbody>
-            </Table>
-          </TableContainer>
-        </div>
-      </div>
+      {/* Pop-up limit */}
+      <Modal isOpen={isOpen} onClose={onClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader borderBottomWidth="1px">Limit Info - {popupData?.station}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody py={4}>
+            <Stack spacing={3}>
+              <div className="flex justify-between border-b pb-2">
+                <span className="font-semibold text-gray-500">Parameter</span>
+                <span className="font-bold">{popupData?.type}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="font-semibold text-gray-500">Current Value</span>
+                <span className="font-bold text-blue-600">
+                  {typeof popupData?.val === 'number' ? popupData.val.toFixed(1) : popupData?.val}
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="font-semibold text-gray-500">High Limit (SP_H)</span>
+                <span className="font-bold text-red-500">{popupData?.spH}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="font-semibold text-gray-500">Low Limit (SP_L)</span>
+                <span className="font-bold text-orange-500">{popupData?.spL}</span>
+              </div>
+              <div className="flex justify-between pb-2">
+                <span className="font-semibold text-gray-500">Timer Limit</span>
+                <span className="font-bold">{popupData?.timer} (waktu)</span>
+              </div>
+            </Stack>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" onClick={onClose}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }
