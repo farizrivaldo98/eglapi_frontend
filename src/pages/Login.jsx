@@ -2,13 +2,14 @@ import React from "react";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { loginData } from "../features/part/userSlice";
+import { useNavigate, useLocation } from "react-router-dom";
 
 function Login() {
   const dispatch = useDispatch();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
+  const navigate   = useNavigate();
   const usernameHandler = (event) => {
     setUsername(event.target.value.toUpperCase());
   };
@@ -94,7 +95,10 @@ function Login() {
           {/* Remember me + Register */}
           <div className="flex items-center justify-between pt-1">
            <a
-              href="Scadamonitor"
+              onClick={(e) => {
+    e.preventDefault(); // supaya tidak reload
+    navigate("/Scadamonitor");
+  }}
               className="text-sm font-medium text-green-600 hover:text-green-500 transition"
             >
               EMS realtime
