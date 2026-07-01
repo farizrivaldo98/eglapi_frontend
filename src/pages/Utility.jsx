@@ -330,7 +330,7 @@ const exportToPDF = async () => {
 
       doc.text(
         `Page ${doc.internal.getCurrentPageInfo().pageNumber} of ${totalPagesExp}`,
-        pageWidth - 10,
+        pageWidth - 5,
         pageHeight - 10,
         { align: "right" }
       );
