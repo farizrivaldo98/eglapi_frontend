@@ -1,7 +1,6 @@
 import React from "react";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
-import { useNavigate } from "react-router";
 import { registerData } from "../features/part/userSlice";
 import { useNavigate, useLocation } from "react-router-dom";
 
