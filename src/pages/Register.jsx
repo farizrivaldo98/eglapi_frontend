@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router";
 import { registerData } from "../features/part/userSlice";
+import { useNavigate, useLocation } from "react-router-dom";
+
 
 function Register() {
   const dispatch = useDispatch();
@@ -12,7 +14,7 @@ function Register() {
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const navigate   = useNavigate();
   const fullNameHandler = (event) => setFullName(event.target.value);
   const userNameHandler = (event) => setUserName(event.target.value.toUpperCase());
   const emailHandler = (event) => setEmail(event.target.value);
@@ -128,7 +130,9 @@ function Register() {
 
           <p className="text-center text-sm text-gray-400 pt-1">
             Sudah punya akun?{" "}
-            <a href="/" className="text-green-600 font-medium hover:text-green-500 transition">
+            <a href="/"   onClick={(e) => {
+        e.preventDefault();
+        navigate("/");}} className="text-green-600 font-medium hover:text-green-500 transition">
               Sign in
             </a>
           </p>
