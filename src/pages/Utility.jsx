@@ -286,7 +286,7 @@ const exportToPDF = async () => {
     doc.addImage(logo, "JPEG", 10, 8, 25, 12);
 
     // 1. Nama Perusahaan (Lebih besar)
-    doc.setFontSize(14);
+    doc.setFontSize(18);
     doc.setFont("helvetica", "bold"); // Buka komentar ini jika ingin huruf tebal
     doc.text("PT LAPI LABORATORIES", pageWidth / 2, 13, {
       align: "center",
@@ -306,7 +306,7 @@ const exportToPDF = async () => {
     doc.text(
       "Phone: (0254) 402150, Fax (0254)402151, Homepage: www.lapilaboratories.com",
       pageWidth / 2,
-      21.5, // Posisi Y diturunkan sedikit dari alamat
+      20, // Posisi Y diturunkan sedikit dari alamat
       { align: "center" }
     );
 
