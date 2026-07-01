@@ -298,7 +298,7 @@ const exportToPDF = async () => {
     doc.text(
       "Jl. Kawasan Industri Modern Kav. 18, Industrial Estate, Cikande, Nambo Ilir, Serang, Kabupaten Serang, Banten 42186",
       pageWidth / 2,
-      17.5, // Posisi Y diturunkan sedikit dari judul
+      19, // Posisi Y diturunkan sedikit dari judul
       { align: "center" }
     );
 
