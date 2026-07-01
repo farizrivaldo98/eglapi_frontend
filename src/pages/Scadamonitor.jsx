@@ -237,7 +237,7 @@ export default function Scadamonitor() {
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="font-semibold text-gray-500">High Limit (SP_H)</span>
-                <Input size="sm" width="120px" type="number" step="0.1" value={editSpH} onChange={(e) => setEditSpH(e.target.value)} />
+                <Input size="sm" width="120px" type="number" step="0.1" value={editSpH}  isDisabled={userGlobal.level < 5 ||userGlobal.level == null } onChange={(e) => setEditSpH(e.target.value)} />
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="font-semibold text-gray-500">Low Limit (SP_L)</span>
