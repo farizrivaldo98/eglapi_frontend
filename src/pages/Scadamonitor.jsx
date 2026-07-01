@@ -166,7 +166,7 @@ export default function Scadamonitor() {
       <div className="p-4 flex gap-4 items-center">
         {userGlobal.level == null ? (
           <>
-            <Button onClick={connectWS} size="sm" colorScheme="red">
+            <Button onClick={connectWS} size="sm" href="/" colorScheme="red">
               Back
             </Button>
           </>
