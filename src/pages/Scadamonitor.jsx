@@ -7,6 +7,7 @@ import {
   useColorModeValue, useToast
 } from "@chakra-ui/react";
 import { useSelector } from "react-redux";
+import { logAuditAction } from "../features/part/userSlice"; // Import fungsi log audit
 
 const STATIONS = [
   { station: "Stripping3",    vars: { Tx: "Tx_Stripping3",    Rx: "Rx_Stripping3",    Px: "Px_Stripping3" } },
@@ -29,7 +30,7 @@ const STATIONS = [
   { station: "CoatingSP1",    vars: { Tx: "Tx_CoatingSP1",    Rx: "Rx_CoatingSP1",    Px: "Px_CoatingSP1" } },
 ];
 
-const DEFAULT_WS_URL = "ws://10.163.0.66:1880/ws/scada"; // Sesuaikan dengan IP
+const DEFAULT_WS_URL = "ws://10.163.0.66:1880/ws/scada"; 
 const STATUS_COLOR = { live: "green", connecting: "orange", down: "red" };
 
 export default function Scadamonitor() {
@@ -38,13 +39,15 @@ export default function Scadamonitor() {
   const wsRef = useRef(null);
   const toast = useToast();
 
-  // Modal Setup & Input States
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [popupData, setPopupData] = useState(null);
   const [editSpL, setEditSpL] = useState("");
   const [editSpH, setEditSpH] = useState("");
   const [editTimer, setEditTimer] = useState("");
+  
+  const [saving, setSaving] = useState(false); // State untuk loading button
   const userGlobal = useSelector((state) => state.user.user);
+
   const connectWS = () => {
     setStatus("connecting");
     if (wsRef.current) wsRef.current.close();
@@ -68,7 +71,6 @@ export default function Scadamonitor() {
     return () => wsRef.current?.close();
   }, []);
 
-  // Update form values saat pop-up dibuka
   useEffect(() => {
     if (popupData) {
       setEditSpL(popupData.spL !== 'N/A' ? popupData.spL : "");
@@ -101,35 +103,50 @@ export default function Scadamonitor() {
     return false;
   };
 
-  // Fungsi untuk mengirim data perubahan limit ke PLC
-  const handleSaveToPlc = () => {
+  // Fungsi untuk mengirim data dan menyimpan log
+  const handleSaveToPlc = async () => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       toast({ title: "Koneksi WebSocket terputus", status: "error", duration: 3000 });
       return;
     }
 
+    setSaving(true);
     const { station, type } = popupData;
     const typeName = type === 'Tx' ? 'Temp' : type === 'Rx' ? 'Rh' : 'Dp';
     let dataUpdated = false;
 
-    const sendCmd = (tag, val) => {
-      wsRef.current.send(JSON.stringify({ cmd: "write", tag: tag, value: Number(val) }));
-      dataUpdated = true;
+    // Helper untuk mengecek perubahan, mengirim WS, dan mencatat log
+    const processUpdate = async (tag, oldVal, newVal, label) => {
+      if (newVal !== "" && Number(newVal) !== oldVal) {
+        // 1. Tulis ke PLC via WebSocket
+        wsRef.current.send(JSON.stringify({ cmd: "write", tag: tag, value: Number(newVal) }));
+        dataUpdated = true;
+
+        // 2. Catat aktivitas log ke database
+        try {
+          await logAuditAction("SCADA_EDIT_LIMIT", {
+            target_station: station,
+            parameter: label,
+            old_value: oldVal,
+            new_value: Number(newVal),
+            user_name: userGlobal.name // Menambahkan referensi user jika API log mendukungnya
+          });
+        } catch (error) {
+          console.error(`Gagal menyimpan log untuk ${label}:`, error);
+        }
+      }
     };
 
-    if (editSpL !== "" && Number(editSpL) !== popupData.spL) {
-      sendCmd(`${typeName}_${station}_SP_L`, editSpL);
-    }
-    if (editSpH !== "" && Number(editSpH) !== popupData.spH) {
-      sendCmd(`${typeName}_${station}_SP_H`, editSpH);
-    }
-    if (editTimer !== "" && Number(editTimer) !== popupData.timer) {
-      sendCmd(`Min_${type}_${station}`, editTimer);
-    }
+    // Eksekusi secara berurutan untuk setiap limit
+    await processUpdate(`${typeName}_${station}_SP_L`, popupData.spL, editSpL, `Low Limit (${typeName})`);
+    await processUpdate(`${typeName}_${station}_SP_H`, popupData.spH, editSpH, `High Limit (${typeName})`);
+    await processUpdate(`Min_${type}_${station}`, popupData.timer, editTimer, `Timer Limit (${typeName})`);
 
     if (dataUpdated) {
-      toast({ title: "Perintah Write terkirim ke PLC", status: "success", duration: 3000 });
+      toast({ title: "Perintah Write terkirim & Log tersimpan", status: "success", duration: 3000 });
     }
+    
+    setSaving(false);
     onClose();
   };
 
@@ -223,15 +240,16 @@ export default function Scadamonitor() {
             </Stack>
           </ModalBody>
           <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose}>Cancel</Button>
-
-              <Button 
-    onClick={handleSaveToPlc} 
-    colorScheme="blue"
-    isDisabled={userGlobal.level < 5}
-  >
-    Save to PLC
-  </Button>
+            <Button variant="ghost" mr={3} onClick={onClose} isDisabled={saving}>Cancel</Button>
+            <Button 
+              onClick={handleSaveToPlc} 
+              colorScheme="blue"
+              isDisabled={userGlobal?.level < 5 || saving}
+              isLoading={saving}
+              loadingText="Saving..."
+            >
+              Save to PLC
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
