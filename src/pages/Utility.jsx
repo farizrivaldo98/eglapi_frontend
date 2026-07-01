@@ -286,7 +286,7 @@ const exportToPDF = async () => {
     doc.addImage(logo, "JPEG", 10, 8, 25, 12);
 
     // 1. Nama Perusahaan (Lebih besar)
-    doc.setFontSize(20);
+    doc.setFontSize(22);
     doc.setFont("helvetica", "bold"); // Buka komentar ini jika ingin huruf tebal
     doc.text("PT LAPI LABORATORIES", pageWidth / 2, 13, {
       align: "center",
