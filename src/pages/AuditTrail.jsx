@@ -16,9 +16,7 @@ const ACTION_CFG = {
   VIEW_UTILITY:      { colorScheme: "blue",   label: "Lihat Data"  },
   EXPORT_PDF:        { colorScheme: "yellow", label: "Export PDF" },
   ADMIN_EDIT_USER:   { colorScheme: "orange", label: "Edit User"},
-  ADMIN_DELETE_USER: { colorScheme: "red",    label: "Hapus User" },
-  SCADA_EDIT_LIMIT:  { colorScheme: "purple",    label: "Hapus User" },
-
+  ADMIN_DELETE_USER: { colorScheme: "red",    label: "Hapus User" }
 };
 
 const ROWS_PER_PAGE = 20;
