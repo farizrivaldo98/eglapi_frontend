@@ -472,7 +472,7 @@ import { useSelector } from "react-redux";
   <Button 
     onClick={exportToPDF} 
     colorScheme="red"
-    isDisabled={userGlobal.level < 2}
+    isDisabled={userGlobal.level < 3}
   >
     Export to PDF
   </Button>
