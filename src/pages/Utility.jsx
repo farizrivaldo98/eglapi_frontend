@@ -287,13 +287,13 @@ const exportToPDF = async () => {
 
     // 1. Nama Perusahaan (Lebih besar)
     doc.setFontSize(14);
-    // doc.setFont("helvetica", "bold"); // Buka komentar ini jika ingin huruf tebal
+    doc.setFont("helvetica", "bold"); // Buka komentar ini jika ingin huruf tebal
     doc.text("PT LAPI LABORATORIES", pageWidth / 2, 13, {
       align: "center",
     });
 
     // 2. Alamat Perusahaan (Ukuran kecil)
-    doc.setFontSize(8); 
+    doc.setFontSize(4); 
     doc.setFont("helvetica", "normal"); // Kembalikan ke font normal jika sebelumnya di-bold
     doc.text(
       "Jl. Kawasan Industri Modern Kav. 18, Industrial Estate, Cikande, Nambo Ilir, Serang, Kabupaten Serang, Banten 42186",
