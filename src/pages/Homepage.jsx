@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
 const modules = [
-  { name: "Maintenance", path: "/maintenance", color: "border-orange-400" },
-  { name: "Utility",     path: "/Utility",     color: "border-blue-400" },
-  { name: "Production",  path: "/production",  color: "border-green-400" },
-  { name: "Building",    path: "/building",    color: "border-purple-400" },
+  { name: "Maintenance", path: "/maintenance" },
+  { name: "Utility",     path: "/Utility"},
+  { name: "Production",  path: "/production"},
+  { name: "Building",    path: "/building"},
+    { name: "Scadamonitor",    path: "/Scadamonitor"},
 ];
 
 
