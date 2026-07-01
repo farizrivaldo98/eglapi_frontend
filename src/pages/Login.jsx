@@ -106,6 +106,10 @@ function Login() {
     </a>
             <a
               href="register"
+                 onClick={(e) => {
+        e.preventDefault();
+        navigate("/register");
+      }}
               className="text-sm font-medium text-green-600 hover:text-green-500 transition"
             >
               Register
