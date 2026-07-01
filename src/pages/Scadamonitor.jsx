@@ -161,6 +161,17 @@ export default function Scadamonitor() {
         .normal-cell { cursor: pointer; } .normal-cell:hover { background-color: rgba(0,0,0,0.05); }
       `}</style>
 
+        <div className="p-4 flex gap-4 items-center">
+        {userGlobal.level == null ? (
+          <>
+            <Button onClick={connectWS} size="sm" colorScheme="blue">
+              Reconnect WS
+            </Button>
+            <Badge colorScheme="red">Back</Badge>
+          </>
+        ) : null}
+      </div>
+
       <div className="p-4 flex gap-4 items-center">
         <Button onClick={connectWS} size="sm" colorScheme="blue">Reconnect WS</Button>
         <Badge colorScheme={STATUS_COLOR[status]}>STATUS: {status.toUpperCase()}</Badge>
