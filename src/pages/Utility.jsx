@@ -252,7 +252,7 @@ import { useSelector } from "react-redux";
     };
 
     // ── DIMODIFIKASI: tambah logAuditAction setelah export ──
-   import logo from "../assets/logo.png";
+
 
 const exportToPDF = async () => {
   const doc = new jsPDF();
