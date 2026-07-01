@@ -7,7 +7,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 
 function Register() {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
+
 
   const [fullName, setFullName] = useState("");
   const [userName, setUserName] = useState("");
