@@ -9,7 +9,7 @@ const navigation = [
   { name: "Utility",     path: "/Utility" },
   { name: "Production",  path: "/production" },
   { name: "Building",    path: "/building" },
-  { name: "EMS realtime", path: "/Scadamonitor"}
+  { name: "Scadamonitor", path: "/Scadamonitor"}
 ];
 
 const IDLE_TIMEOUT = 10 * 60 * 1000;

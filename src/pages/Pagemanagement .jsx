@@ -30,10 +30,11 @@ const LEVELS = [1, 2, 3, 4, 5];
 
 // Samain warna aksen sama kartu module di Homepage (border-orange-400 dst)
 const PAGES = [
-  { key: "Maintenance", label: "Maintenance", accent: "orange" },
-  { key: "Utility",     label: "Utility",      accent: "blue"   },
-  { key: "Production",  label: "Production",   accent: "green" },
-  { key: "Building",    label: "Building",     accent: "purple" },
+  { key: "Maintenance", label: "Maintenance" },
+  { key: "Utility",     label: "Utility" },
+  { key: "Production",  label: "Production" },
+  { key: "Building",    label: "Building" },
+    { key: "Scadamonitor",    label: "Scadamonitor" }
 ];
 
 export default function PageManagement() {
