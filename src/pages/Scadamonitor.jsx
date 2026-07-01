@@ -8,6 +8,7 @@ import {
 } from "@chakra-ui/react";
 import { useSelector } from "react-redux";
 import { logAuditAction } from "../features/part/userSlice"; // Import fungsi log audit
+import { useNavigate, useLocation } from "react-router-dom";
 
 const STATIONS = [
   { station: "Stripping3",    vars: { Tx: "Tx_Stripping3",    Rx: "Rx_Stripping3",    Px: "Px_Stripping3" } },
@@ -38,7 +39,7 @@ export default function Scadamonitor() {
   const [status, setStatus] = useState("down");
   const wsRef = useRef(null);
   const toast = useToast();
-
+  const navigate   = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [popupData, setPopupData] = useState(null);
   const [editSpL, setEditSpL] = useState("");
