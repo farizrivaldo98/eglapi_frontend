@@ -244,7 +244,7 @@ export default function Scadamonitor() {
             <Button 
               onClick={handleSaveToPlc} 
               colorScheme="blue"
-              isDisabled={userGlobal?.level < 5 || saving}
+              isDisabled={userGlobal.level > 4}
               isLoading={saving}
               loadingText="Saving..."
             >
