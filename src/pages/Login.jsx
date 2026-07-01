@@ -95,14 +95,15 @@ function Login() {
           {/* Remember me + Register */}
           <div className="flex items-center justify-between pt-1">
            <a
-              onClick={(e) => {
-    e.preventDefault(); // supaya tidak reload
-    navigate("/Scadamonitor");
-  }}
-              className="text-sm font-medium text-green-600 hover:text-green-500 transition"
-            >
-              EMS realtime
-            </a>
+      href="/Scadamonitor"
+      onClick={(e) => {
+        e.preventDefault();
+        navigate("/Scadamonitor");
+      }}
+      className="text-sm font-medium text-green-600 hover:text-green-500 transition"
+    >
+      EMS realtime
+    </a>
             <a
               href="register"
               className="text-sm font-medium text-green-600 hover:text-green-500 transition"
