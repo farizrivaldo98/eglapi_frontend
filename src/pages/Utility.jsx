@@ -293,7 +293,7 @@ const exportToPDF = async () => {
     });
 
     // 2. Alamat Perusahaan (Ukuran kecil)
-    doc.setFontSize(5); 
+    doc.setFontSize(7); 
     doc.setFont("helvetica", "normal"); // Kembalikan ke font normal jika sebelumnya di-bold
     doc.text(
       "Jl. Kawasan Industri Modern Kav. 18, Industrial Estate, Cikande, Nambo Ilir, Serang, Kabupaten Serang, Banten 42186",
