@@ -16,7 +16,8 @@ const ACTION_CFG = {
   VIEW_UTILITY:      { colorScheme: "blue",   label: "Lihat Data"  },
   EXPORT_PDF:        { colorScheme: "yellow", label: "Export PDF" },
   ADMIN_EDIT_USER:   { colorScheme: "orange", label: "Edit User"},
-  ADMIN_DELETE_USER: { colorScheme: "red",    label: "Hapus User" }
+  ADMIN_DELETE_USER: { colorScheme: "red",    label: "Hapus User" },
+  SCADA_EDIT_LIMIT: { colorScheme: "putple",    label: "Edit Limit" },
 };
 
 const ROWS_PER_PAGE = 20;
@@ -262,6 +263,7 @@ export default function AuditTrail() {
               <option value="EXPORT_PDF"> Export PDF</option>
               <option value="ADMIN_EDIT_USER"> Edit User</option>
               <option value="ADMIN_DELETE_USER"> Hapus User</option>
+              <option value="SCADA_EDIT_LIMIT"> Edit Limit</option>
             </Select>
           </div>
 
@@ -301,61 +303,164 @@ export default function AuditTrail() {
             />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <TableContainer>
-              <Table key={colorMode} variant="simple">
-                <TableCaption sx={{ color: tulisanColor }}>
-                  Audit Trail — PT. Lapi Laboratories
-                </TableCaption>
-                <Thead>
-                  <Tr>
-                    <Th sx={{ color: tulisanColor }}>No</Th>
-                    <Th sx={{ color: tulisanColor }}>Waktu Server</Th>
-                    <Th sx={{ color: tulisanColor }}>User</Th>
-                    <Th sx={{ color: tulisanColor }}>Aksi</Th>
-                    <Th sx={{ color: tulisanColor }}>Detail</Th>
-                    <Th sx={{ color: tulisanColor }}>IP Address</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {paginatedLogs.length === 0 ? (
-                    <Tr>
-                      <Td colSpan={6} textAlign="center" display="table-cell" sx={{ color: tulisanColor }}>
-                        {!fetched
-                          ? "  Pilih filter lalu klik Tampilkan"
-                          : "Tidak ada data yang cocok dengan filter ini"}
-                      </Td>
-                    </Tr>
-                  ) : (
-                    paginatedLogs.map((log, i) => (
-                      <Tr key={log.id}>
-                        <Td sx={{ color: tulisanColor }} fontSize="sm">
-                          {(currentPage - 1) * ROWS_PER_PAGE + i + 1}
-                        </Td>
-                        <Td sx={{ color: tulisanColor }} fontFamily="mono" fontSize="sm" whiteSpace="nowrap">
-                          {formatTime(log.server_time)}
-                        </Td>
-                        <Td sx={{ color: tulisanColor }} fontWeight="semibold">
-                          {log.user_name}
-                        </Td>
-                        <Td>
-                          <ActionBadge action={log.action} />
-                        </Td>
-                        <Td sx={{ color: tulisanColor }}>
-                          {parseDetail(log.detail)}
-                        </Td>
-                        <Td sx={{ color: tulisanColor }} fontFamily="mono" fontSize="sm">
-                          {formatIP(log.ip_address)}
-                        </Td>
-                      </Tr>
-                    ))
-                  )}
-                </Tbody>
-              </Table>
-            </TableContainer>
-          </div>
+      //     <div className="overflow-x-auto">
+      //       <TableContainer>
+      //         <Table key={colorMode} variant="simple">
+      //           <TableCaption sx={{ color: tulisanColor }}>
+      //             Audit Trail — PT. Lapi Laboratories
+      //           </TableCaption>
+      //           <Thead>
+      //             <Tr>
+      //               <Th sx={{ color: tulisanColor }}>No</Th>
+      //               <Th sx={{ color: tulisanColor }}>Waktu Server</Th>
+      //               <Th sx={{ color: tulisanColor }}>User</Th>
+      //               <Th sx={{ color: tulisanColor }}>Aksi</Th>
+      //               <Th sx={{ color: tulisanColor }}>Detail</Th>
+      //               <Th sx={{ color: tulisanColor }}>IP Address</Th>
+      //             </Tr>
+      //           </Thead>
+      //           <Tbody>
+      //             {paginatedLogs.length === 0 ? (
+      //               <Tr>
+      //                 <Td colSpan={6} textAlign="center" display="table-cell" sx={{ color: tulisanColor }}>
+      //                   {!fetched
+      //                     ? "  Pilih filter lalu klik Tampilkan"
+      //                     : "Tidak ada data yang cocok dengan filter ini"}
+      //                 </Td>
+      //               </Tr>
+      //             ) : (
+      //               paginatedLogs.map((log, i) => (
+      //                 <Tr key={log.id}>
+      //                   <Td sx={{ color: tulisanColor }} fontSize="sm">
+      //                     {(currentPage - 1) * ROWS_PER_PAGE + i + 1}
+      //                   </Td>
+      //                   <Td sx={{ color: tulisanColor }} fontFamily="mono" fontSize="sm" whiteSpace="nowrap">
+      //                     {formatTime(log.server_time)}
+      //                   </Td>
+      //                   <Td sx={{ color: tulisanColor }} fontWeight="semibold">
+      //                     {log.user_name}
+      //                   </Td>
+      //                   <Td>
+      //                     <ActionBadge action={log.action} />
+      //                   </Td>
+      //                   <Td sx={{ color: tulisanColor }}>
+      //                     {parseDetail(log.detail)}
+      //                   </Td>
+      //                   <Td sx={{ color: tulisanColor }} fontFamily="mono" fontSize="sm">
+      //                     {formatIP(log.ip_address)}
+      //                   </Td>
+      //                 </Tr>
+      //               ))
+      //             )}
+      //           </Tbody>
+      //         </Table>
+      //       </TableContainer>
+      //     </div>
+      //   )}
+      // </div>
+
+      <div className="overflow-x-auto">
+  <TableContainer>
+    <Table
+      key={colorMode}
+      variant="simple"
+      sx={{
+        tableLayout: "fixed",
+        width: "100%",
+      }}
+    >
+      <TableCaption sx={{ color: tulisanColor }}>
+        Audit Trail — PT. Lapi Laboratories
+      </TableCaption>
+
+      <Thead>
+        <Tr>
+          <Th sx={{ color: tulisanColor }} width="5%">
+            No
+          </Th>
+          <Th sx={{ color: tulisanColor }} width="15%">
+            Waktu Server
+          </Th>
+          <Th sx={{ color: tulisanColor }} width="15%">
+            User
+          </Th>
+          <Th sx={{ color: tulisanColor }} width="15%">
+            Aksi
+          </Th>
+          <Th sx={{ color: tulisanColor }} width="35%">
+            Detail
+          </Th>
+          <Th sx={{ color: tulisanColor }} width="15%">
+            IP Address
+          </Th>
+        </Tr>
+      </Thead>
+
+      <Tbody>
+        {paginatedLogs.length === 0 ? (
+          <Tr>
+            <Td
+              colSpan={6}
+              textAlign="center"
+              display="table-cell"
+              sx={{ color: tulisanColor }}
+            >
+              {!fetched
+                ? "Pilih filter lalu klik Tampilkan"
+                : "Tidak ada data yang cocok dengan filter ini"}
+            </Td>
+          </Tr>
+        ) : (
+          paginatedLogs.map((log, i) => (
+            <Tr key={log.id}>
+              <Td sx={{ color: tulisanColor }} fontSize="sm">
+                {(currentPage - 1) * ROWS_PER_PAGE + i + 1}
+              </Td>
+
+              <Td
+                sx={{ color: tulisanColor }}
+                fontFamily="mono"
+                fontSize="sm"
+                whiteSpace="nowrap"
+              >
+                {formatTime(log.server_time)}
+              </Td>
+
+              <Td sx={{ color: tulisanColor }} fontWeight="semibold">
+                {log.user_name}
+              </Td>
+
+              <Td>
+                <ActionBadge action={log.action} />
+              </Td>
+
+              <Td
+                sx={{
+                  color: tulisanColor,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  overflowWrap: "anywhere",
+                  verticalAlign: "top",
+                }}
+              >
+                {parseDetail(log.detail)}
+              </Td>
+
+              <Td
+                sx={{ color: tulisanColor }}
+                fontFamily="mono"
+                fontSize="sm"
+                whiteSpace="nowrap"
+              >
+                {formatIP(log.ip_address)}
+              </Td>
+            </Tr>
+          ))
         )}
-      </div>
+      </Tbody>
+    </Table>
+  </TableContainer>
+</div>
 
       {/* ── Pagination ─────────────────────────────────────────── */}
       {!loading && totalPages > 1 && (
