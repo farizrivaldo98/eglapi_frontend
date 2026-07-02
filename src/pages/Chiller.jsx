@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import {
   Select,
@@ -38,9 +38,11 @@ var CanvasJS = CanvasJSReact.CanvasJS;
 var CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
 // ────────────────────────────────────────────────────────────
-// KONFIGURASI CHILLER — ubah di sini kalau ada penyesuaian
+// KONFIGURASI CHILLER & WEBSOCKET
 // ────────────────────────────────────────────────────────────
 const API_BASE = "http://10.163.0.66:8002/part";
+const DEFAULT_WS_URL = "ws://10.163.0.66:1880/ws/scada";
+const STATUS_COLOR = { live: "green", connecting: "orange", down: "red" };
 
 const CHANNELS = [
   { key: "CH1", label: "Chiller 1", table: "cMT-C21B_CH1_data", color: { light: "#1e6fd9", dark: "#60a5fa" } },
@@ -60,9 +62,6 @@ const METRICS = [
   { key: "kwTr", label: "KW/TR", unit: "kW/TR" },
 ];
 
-const REALTIME_WINDOW_MINUTES = 30; // rentang data yang ditarik tiap refresh
-const REALTIME_REFRESH_MS = 10000; // interval auto-refresh realtime (10 detik)
-
 const formatDateForApi = (date) => {
   const pad = (n) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
@@ -74,17 +73,19 @@ function Chiller() {
   // ── STATE ──────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState(0); // 0 = Realtime, 1 = Historical
 
+  // State WebSocket untuk Realtime
+  const [wsData, setWsData] = useState({});
+  const [wsStatus, setWsStatus] = useState("down");
+  const wsRef = useRef(null);
+
+  // State untuk Historical
   const [selectedChannels, setSelectedChannels] = useState(["CH1"]);
   const [selectedMetrics, setSelectedMetrics] = useState(METRICS.map((m) => m.key));
-
-  const [channelData, setChannelData] = useState({}); // { CH1: [...rows], CH2: [...] }
-  const [lastUpdated, setLastUpdated] = useState(null);
-
+  const [channelData, setChannelData] = useState({}); 
   const [datePickerStart, setDatePickerStart] = useState();
   const [datePickerFinish, setDatePickerFinish] = useState();
 
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -115,15 +116,37 @@ function Chiller() {
     return () => observer.disconnect();
   }, []);
 
-  // ── FETCH DATA (dipakai bareng oleh Realtime & Historical) ──
+  // ── WEBSOCKET CONNECTION (Untuk Tab Realtime) ──────────────
+  const connectWS = () => {
+    setWsStatus("connecting");
+    if (wsRef.current) wsRef.current.close();
+    const ws = new WebSocket(DEFAULT_WS_URL);
+    ws.onopen = () => setWsStatus("live");
+    ws.onclose = () => setWsStatus("down");
+    ws.onerror = () => setWsStatus("down");
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.data) setWsData((prev) => ({ ...prev, ...payload.data }));
+      } catch (e) {
+        console.error("WS Parse Error:", e);
+      }
+    };
+    wsRef.current = ws;
+  };
+
+  useEffect(() => {
+    connectWS();
+    return () => wsRef.current?.close();
+  }, []);
+
+  // ── FETCH DATA HISTORICAL ──────────────────────────────────
   const fetchAllData = async (startStr, finishStr, { background = false, mode = "historical" } = {}) => {
     if (selectedChannels.length === 0) return;
 
     if (!background) {
       setLoading(true);
       setError(null);
-    } else {
-      setRefreshing(true);
     }
 
     try {
@@ -142,7 +165,6 @@ function Chiller() {
         newData[chKey] = rows;
       });
       setChannelData(newData);
-      setLastUpdated(new Date());
       setCurrentPageByChannel((prev) => {
         const next = { ...prev };
         selectedChannels.forEach((chKey) => {
@@ -166,13 +188,10 @@ function Chiller() {
     } finally {
       if (!background) {
         setTimeout(() => setLoading(false), 2000);
-      } else {
-        setRefreshing(false);
       }
     }
   };
 
-  // ── HISTORICAL: submit manual (persis pola Utility.jsx) ─────
   const getSubmit = () => {
     if (!datePickerStart || !datePickerFinish) {
       setError("Isi Start Date dan Finish Date dulu");
@@ -187,28 +206,7 @@ function Chiller() {
   const datePickStart = (e) => setDatePickerStart(e.target.value);
   const datePickFinish = (e) => setDatePickerFinish(e.target.value);
 
-  // ── REALTIME: auto-refresh rolling window, sumbernya tetap ──
-  // tabel database yang sama (getAllDataChiller), bukan live PLC/Node-RED
-  useEffect(() => {
-    if (activeTab !== 0) return;
-
-    const runFetch = (isFirst) => {
-      const finish = new Date();
-      const start = new Date(finish.getTime() - REALTIME_WINDOW_MINUTES * 60000);
-      fetchAllData(formatDateForApi(start), formatDateForApi(finish), {
-        background: !isFirst,
-        mode: "realtime",
-      });
-    };
-
-    runFetch(true);
-    const interval = setInterval(() => runFetch(false), REALTIME_REFRESH_MS);
-
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, selectedChannels, selectedMetrics]);
-
-  // ── SELEKSI CHANNEL & METRIC (minimal 1 harus tetap kepilih) ─
+  // ── SELEKSI CHANNEL & METRIC ────────────────────────────────
   const toggleChannels = (values) => {
     if (values.length === 0) return;
     setSelectedChannels(values);
@@ -239,7 +237,7 @@ function Chiller() {
     return { avg: avg.toFixed(2), max: Math.max(...values).toFixed(2), min: Math.min(...values).toFixed(2) };
   };
 
-  // ── CHART: multi-axis (1 axis per metric, warna per channel) ─
+  // ── CHART HISTORICAL ─────────────────────────────────────────
   const activeMetrics = METRICS.filter((m) => selectedMetrics.includes(m.key));
   const activeChannels = CHANNELS.filter((c) => selectedChannels.includes(c.key));
 
@@ -288,12 +286,7 @@ function Chiller() {
       text: "Chiller Performance",
       fontColor: isDarkMode ? "white" : "black",
     },
-    subtitles: [
-      {
-        text: activeTab === 0 ? "Realtime" : "Historical",
-        fontColor: isDarkMode ? "white" : "black",
-      },
-    ],
+    subtitles: [{ text: "Historical", fontColor: isDarkMode ? "white" : "black" }],
     axisY,
     axisX: {
       lineColor: isDarkMode ? "#d6d6d6" : "#474747",
@@ -306,7 +299,7 @@ function Chiller() {
     data: chartSeries,
   };
 
-  // ── EXPORT PDF (1 section per channel, letterhead sama kayak Utility) ─
+  // ── EXPORT PDF ─────────────────────────────────────────────
   const exportToPDF = async () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -385,10 +378,75 @@ function Chiller() {
       doc.putTotalPages(totalPagesExp);
     }
 
-    doc.save(`chiller-${activeTab === 0 ? "realtime" : "historical"}-${fileSuffix}.pdf`);
+    doc.save(`chiller-historical-${fileSuffix}.pdf`);
   };
 
-  // ── RENDER: selector channel & metric ───────────────────────
+  // ── RENDER COMPONENT: REALTIME TABLE (Menggunakan Node-RED WebSocket) ──
+  const renderRealtimeTable = () => {
+    const tdStyles = { borderWidth: "2px", borderColor: borderColor, textAlign: "center", transition: "0.2s ease" };
+    return (
+      <div className="mx-4 md:mx-20 mb-4 bg-card rounded-md shadow-lg p-2 mt-4">
+        <div className="p-4 flex gap-4 items-center mb-2">
+          <Button onClick={connectWS} size="sm" colorScheme="blue">Reconnect WS</Button>
+          <Badge colorScheme={STATUS_COLOR[wsStatus]}>STATUS: {wsStatus.toUpperCase()}</Badge>
+        </div>
+        <TableContainer>
+          <Table variant="simple" size="sm">
+            <Thead>
+              <Tr>
+                <Th sx={tdStyles}>Chiller</Th>
+                <Th sx={tdStyles}>Status</Th>
+                <Th sx={tdStyles}>Capacity (%)</Th>
+                <Th sx={tdStyles}>Current (A)</Th>
+                <Th sx={tdStyles}>Temp IN (°C)</Th>
+                <Th sx={tdStyles}>Temp OUT (°C)</Th>
+                <Th sx={tdStyles}>COP</Th>
+                <Th sx={tdStyles}>Delta T (°C)</Th>
+                <Th sx={tdStyles}>KW/TR</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {CHANNELS.map((ch) => {
+                const prefix = ch.key;
+                const status = wsData[`${prefix}_Status`];
+                const capacity = wsData[`${prefix}_Capacity`];
+                const current = wsData[`${prefix}_Current`];
+                const tempIn = wsData[`${prefix}_Temp_IN`];
+                const tempOut = wsData[`${prefix}_Temp_OUT`];
+                const cop = wsData[`${prefix}_COP`];
+                const deltaT = wsData[`${prefix}_DeltaT`];
+                const kwtr = wsData[`${prefix}_KWTR`];
+
+                return (
+                  <Tr key={ch.key}>
+                    <Td sx={{...tdStyles, textAlign: "left", fontWeight: "bold"}}>{ch.label}</Td>
+                    <Td sx={tdStyles}>
+                      {status === true ? (
+                        <Badge colorScheme="green" className="animate-pulse">RUNNING</Badge>
+                      ) : status === false ? (
+                        <Badge colorScheme="red">STOPPED</Badge>
+                      ) : (
+                        '-'
+                      )}
+                    </Td>
+                    <Td sx={tdStyles}>{capacity !== undefined ? capacity.toFixed(1) : '-'}</Td>
+                    <Td sx={tdStyles}>{current !== undefined ? current.toFixed(1) : '-'}</Td>
+                    <Td sx={tdStyles}>{tempIn !== undefined ? tempIn.toFixed(1) : '-'}</Td>
+                    <Td sx={tdStyles}>{tempOut !== undefined ? tempOut.toFixed(1) : '-'}</Td>
+                    <Td sx={tdStyles}>{cop !== undefined ? cop.toFixed(2) : '-'}</Td>
+                    <Td sx={tdStyles}>{deltaT !== undefined ? deltaT.toFixed(1) : '-'}</Td>
+                    <Td sx={tdStyles}>{kwtr !== undefined ? kwtr.toFixed(2) : '-'}</Td>
+                  </Tr>
+                );
+              })}
+            </Tbody>
+          </Table>
+        </TableContainer>
+      </div>
+    );
+  };
+
+  // ── RENDER COMPONENT: HISTORICAL SELECTOR ────────────────
   const renderChannelSelector = () => (
     <CheckboxGroup value={selectedChannels} onChange={toggleChannels}>
       <Wrap spacing={4}>
@@ -432,7 +490,7 @@ function Chiller() {
     </CheckboxGroup>
   );
 
-  // ── RENDER: tabel summary Avg/Max/Min ───────────────────────
+  // ── RENDER COMPONENT: HISTORICAL STATS ────────────────────
   const renderStatsTable = () => (
     <div className="mt-6 mx-4 md:mx-20 bg-card rounded-md">
       <TableContainer maxHeight="320px" overflowY="auto">
@@ -471,7 +529,7 @@ function Chiller() {
     </div>
   );
 
-  // ── RENDER: 1 tabel data mentah per channel terpilih ────────
+  // ── RENDER COMPONENT: HISTORICAL RAW DATA TABLE ──────────
   const renderChannelTable = (channel) => {
     const rows = channelData[channel.key] || [];
     const totalPages = Math.max(Math.ceil(rows.length / rowsPerPage), 1);
@@ -572,17 +630,13 @@ function Chiller() {
           <Tab>Historical</Tab>
         </TabList>
         <TabPanels>
+          
+          {/* TAB 0 - REALTIME */}
           <TabPanel px={0}>
-            <div className="flex flex-row items-center justify-center gap-3 my-4 flex-wrap">
-              <Badge colorScheme="green" className="animate-pulse" px={2} py={1}>
-                LIVE
-              </Badge>
-              <Text className="text-text">
-                {lastUpdated ? `Update terakhir: ${lastUpdated.toLocaleTimeString()}` : "Menunggu data..."}
-              </Text>
-              {refreshing && <Spinner size="sm" />}
-            </div>
+             {renderRealtimeTable()}
           </TabPanel>
+
+          {/* TAB 1 - HISTORICAL */}
           <TabPanel px={0}>
             <div className="flex flex-row justify-center space-x-4 my-6 flex-wrap xl:flex-nowrap">
               <div>
@@ -641,57 +695,62 @@ function Chiller() {
         </TabPanels>
       </Tabs>
 
-      <div className="mx-4 md:mx-20 mb-2 mt-2">
-        <h5 className="mb-1 text-text">Channel</h5>
-        {renderChannelSelector()}
-      </div>
-      <div className="mx-4 md:mx-20 mb-6 mt-4">
-        <h5 className="mb-1 text-text">Metric</h5>
-        {renderMetricSelector()}
-      </div>
-
-      <div className="w-full flex justify-center mb-4">
-        <Button onClick={exportToPDF} colorScheme="red" isDisabled={userGlobal.level < 3}>
-          Export to PDF
-        </Button>
-      </div>
-
-      <div className="block bg-card rounded-lg p-1 shadow-lg mx-4 md:mx-20 overflow-x-auto">
-        {loading ? (
-          <div className="flex flex-col items-center py-10">
-            <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" />
+      {/* ELEMENT HISTORICAL (Hanya tampil di Tab 1) */}
+      {activeTab === 1 && (
+        <>
+          <div className="mx-4 md:mx-20 mb-2 mt-2">
+            <h5 className="mb-1 text-text">Channel</h5>
+            {renderChannelSelector()}
           </div>
-        ) : error ? (
-          <div className="text-red-500 flex flex-col items-center py-10">{error}</div>
-        ) : !hasSelection ? (
-          <div className="text-text flex flex-col items-center py-10">Pilih minimal 1 channel dan 1 metric</div>
-        ) : (
-          <CanvasJSChart options={chartOptions} />
-        )}
-      </div>
+          <div className="mx-4 md:mx-20 mb-6 mt-4">
+            <h5 className="mb-1 text-text">Metric</h5>
+            {renderMetricSelector()}
+          </div>
 
-      {!loading && !error && hasSelection && renderStatsTable()}
+          <div className="w-full flex justify-center mb-4">
+            <Button onClick={exportToPDF} colorScheme="red" isDisabled={userGlobal.level < 3}>
+              Export to PDF
+            </Button>
+          </div>
 
-      <br />
-      <Stack className="flex flex-row justify-center gap-2" direction="row" spacing={2} align="center">
-        <div className="mt-2">
-          <Select value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))} width="80px">
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={40}>40</option>
-            <option value={60}>60</option>
-            <option value={100}>100</option>
-          </Select>
-        </div>
-        <div>
-          <Button className="w-40 mt-2" colorScheme="red" onClick={() => setIsTableVisible(!isTableVisible)}>
-            {isTableVisible ? "Hide All Data" : "Show All Data"}
-          </Button>
-        </div>
-      </Stack>
+          <div className="block bg-card rounded-lg p-1 shadow-lg mx-4 md:mx-20 overflow-x-auto">
+            {loading ? (
+              <div className="flex flex-col items-center py-10">
+                <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" />
+              </div>
+            ) : error ? (
+              <div className="text-red-500 flex flex-col items-center py-10">{error}</div>
+            ) : !hasSelection ? (
+              <div className="text-text flex flex-col items-center py-10">Pilih minimal 1 channel dan 1 metric</div>
+            ) : (
+              <CanvasJSChart options={chartOptions} />
+            )}
+          </div>
 
-      {isTableVisible && hasSelection && activeChannels.map((channel) => renderChannelTable(channel))}
+          {!loading && !error && hasSelection && renderStatsTable()}
+
+          <br />
+          <Stack className="flex flex-row justify-center gap-2" direction="row" spacing={2} align="center">
+            <div className="mt-2">
+              <Select value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))} width="80px">
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={40}>40</option>
+                <option value={60}>60</option>
+                <option value={100}>100</option>
+              </Select>
+            </div>
+            <div>
+              <Button className="w-40 mt-2" colorScheme="red" onClick={() => setIsTableVisible(!isTableVisible)}>
+                {isTableVisible ? "Hide All Data" : "Show All Data"}
+              </Button>
+            </div>
+          </Stack>
+
+          {isTableVisible && hasSelection && activeChannels.map((channel) => renderChannelTable(channel))}
+        </>
+      )}
     </div>
   );
 }
