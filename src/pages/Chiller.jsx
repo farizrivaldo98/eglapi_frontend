@@ -406,11 +406,11 @@ function Chiller() {
               </Tr>
             </Thead>
             <Tbody>
-          // Pastikan baris-baris ini ada di dalam function renderRealtimeTable Bapak
+       
 {CHANNELS.map((ch) => {
   const prefix = ch.key; // "CH1", "CH2", "CH3", "CH4"
   
-  // Ambil data dari wsData
+
   const status = wsData[`${prefix}_Status`];
   const capacity = wsData[`${prefix}_Capacity`];
   const current = wsData[`${prefix}_Current`];
