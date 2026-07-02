@@ -52,16 +52,16 @@ const CHANNELS = [
 ];
 
 // urutan & key HARUS selaras sama urutan data_format_0..6 di tabel backend
-// const METRICS = [
-//   { key: "capacity", label: "Capacity", unit: "%" },
-//   { key: "current", label: "Current", unit: "A" },
-//   { key: "kwInput", label: "KW Input", unit: "kW" },
-//   { key: "kwOutput", label: "KW Output", unit: "kW" },
-//   { key: "cop", label: "COP", unit: "" },
-//   { key: "deltaT", label: "Delta T", unit: "°C" },
-//   { key: "kwTr", label: "KW/TR", unit: "kW/TR" },
-// ];
-const [selectedMetrics, setSelectedMetrics] = useState([]);
+const METRICS = [
+  { key: "capacity", label: "Capacity", unit: "%" },
+  { key: "current", label: "Current", unit: "A" },
+  { key: "kwInput", label: "KW Input", unit: "kW" },
+  { key: "kwOutput", label: "KW Output", unit: "kW" },
+  { key: "cop", label: "COP", unit: "" },
+  { key: "deltaT", label: "Delta T", unit: "°C" },
+  { key: "kwTr", label: "KW/TR", unit: "kW/TR" },
+];
+
 
 const formatDateForApi = (date) => {
   const pad = (n) => String(n).padStart(2, "0");
