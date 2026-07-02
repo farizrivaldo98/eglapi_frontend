@@ -406,39 +406,42 @@ function Chiller() {
               </Tr>
             </Thead>
             <Tbody>
-              {CHANNELS.map((ch) => {
-                const prefix = ch.key;
-                const status = wsData[`${prefix}_Status`];
-                const capacity = wsData[`${prefix}_Capacity`];
-                const current = wsData[`${prefix}_Current`];
-                const tempIn = wsData[`${prefix}_Temp_IN`];
-                const tempOut = wsData[`${prefix}_Temp_OUT`];
-                const cop = wsData[`${prefix}_COP`];
-                const deltaT = wsData[`${prefix}_DeltaT`];
-                const kwtr = wsData[`${prefix}_KWTR`];
+          // Pastikan baris-baris ini ada di dalam function renderRealtimeTable Bapak
+{CHANNELS.map((ch) => {
+  const prefix = ch.key; // "CH1", "CH2", "CH3", "CH4"
+  
+  // Ambil data dari wsData
+  const status = wsData[`${prefix}_Status`];
+  const capacity = wsData[`${prefix}_Capacity`];
+  const current = wsData[`${prefix}_Current`];
+  const tempIn = wsData[`${prefix}_Temp_IN`];
+  const tempOut = wsData[`${prefix}_Temp_OUT`];
+  const cop = wsData[`${prefix}_COP`];
+  const deltaT = wsData[`${prefix}_DeltaT`];
+  const kwtr = wsData[`${prefix}_KWTR`];
 
-                return (
-                  <Tr key={ch.key}>
-                    <Td sx={{...tdStyles, textAlign: "left", fontWeight: "bold"}}>{ch.label}</Td>
-                    <Td sx={tdStyles}>
-                      {status === true ? (
-                        <Badge colorScheme="green" className="animate-pulse">RUNNING</Badge>
-                      ) : status === false ? (
-                        <Badge colorScheme="red">STOPPED</Badge>
-                      ) : (
-                        '-'
-                      )}
-                    </Td>
-                    <Td sx={tdStyles}>{capacity !== undefined ? capacity.toFixed(1) : '-'}</Td>
-                    <Td sx={tdStyles}>{current !== undefined ? current.toFixed(1) : '-'}</Td>
-                    <Td sx={tdStyles}>{tempIn !== undefined ? tempIn.toFixed(1) : '-'}</Td>
-                    <Td sx={tdStyles}>{tempOut !== undefined ? tempOut.toFixed(1) : '-'}</Td>
-                    <Td sx={tdStyles}>{cop !== undefined ? cop.toFixed(2) : '-'}</Td>
-                    <Td sx={tdStyles}>{deltaT !== undefined ? deltaT.toFixed(1) : '-'}</Td>
-                    <Td sx={tdStyles}>{kwtr !== undefined ? kwtr.toFixed(2) : '-'}</Td>
-                  </Tr>
-                );
-              })}
+  return (
+    <Tr key={ch.key}>
+      <Td sx={{...tdStyles, textAlign: "left", fontWeight: "bold"}}>{ch.label}</Td>
+      <Td sx={tdStyles}>
+        {status === true ? (
+          <Badge colorScheme="green">RUNNING</Badge>
+        ) : status === false ? (
+          <Badge colorScheme="red">STOPPED</Badge>
+        ) : (
+          '-'
+        )}
+      </Td>
+      <Td sx={tdStyles}>{capacity !== undefined && capacity !== null ? capacity.toFixed(1) : '-'}</Td>
+      <Td sx={tdStyles}>{current !== undefined && current !== null ? current.toFixed(1) : '-'}</Td>
+      <Td sx={tdStyles}>{tempIn !== undefined && tempIn !== null ? tempIn.toFixed(1) : '-'}</Td>
+      <Td sx={tdStyles}>{tempOut !== undefined && tempOut !== null ? tempOut.toFixed(1) : '-'}</Td>
+      <Td sx={tdStyles}>{cop !== undefined && cop !== null ? cop.toFixed(2) : '-'}</Td>
+      <Td sx={tdStyles}>{deltaT !== undefined && deltaT !== null ? deltaT.toFixed(1) : '-'}</Td>
+      <Td sx={tdStyles}>{kwtr !== undefined && kwtr !== null ? kwtr.toFixed(2) : '-'}</Td>
+    </Tr>
+  );
+})}
             </Tbody>
           </Table>
         </TableContainer>
