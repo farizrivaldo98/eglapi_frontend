@@ -424,9 +424,9 @@ function Chiller() {
     <Tr key={ch.key}>
       <Td sx={{...tdStyles, textAlign: "left", fontWeight: "bold"}}>{ch.label}</Td>
       <Td sx={tdStyles}>
-        {status === true ? (
+        {capacity > 0 ? (
           <Badge colorScheme="green">RUNNING</Badge>
-        ) : status === false ? (
+        ) : capacity === 0 ? (
           <Badge colorScheme="red">STOPPED</Badge>
         ) : (
           '-'
