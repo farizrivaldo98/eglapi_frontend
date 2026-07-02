@@ -89,7 +89,7 @@ import { useSelector } from "react-redux";
       return dataListTable.map((entry) => {
         const tableName = entry.TABLE_NAME;
         const cleanedName = tableName
-          .replace("cMT-PMWorkshop_", "")
+         .replace("cMT-C21B_", "")
           .replace("_data", "");
         return (
           <>
