@@ -761,7 +761,6 @@
 
 // export default Chiller;
 
-
 import { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import {
@@ -831,6 +830,15 @@ const METRICS = [
 const PERFORMANCE_METRICS = METRICS.filter((m) => ["capacity", "current", "kwInput", "kwOutput"].includes(m.key));
 const EFFICIENCY_METRICS = METRICS.filter((m) => ["cop", "deltaT", "kwTr"].includes(m.key));
 const ANALYSIS_REFRESH_MS = 5 * 60 * 1000; // auto refresh data analisa tiap 5 menit
+const ANALYSIS_HOUR_OPTIONS = [1, 2, 3, 5, 6, 8, 12, 16, 20, 24]; // pilihan rentang waktu, maksimal 24 jam
+const DEFAULT_ANALYSIS_HOURS = 5;
+
+// Ambang batas contoh untuk panel Alerts & Insights - silakan disesuaikan ke standar pabrik
+const ANALYSIS_THRESHOLDS = {
+  copMin: 3.0, // COP rata-rata di bawah ini dianggap kurang efisien
+  deltaTMin: 1.5, // Delta T rata-rata di bawah ini indikasi flow/fouling issue
+  kwTrMax: 1.3, // KW/TR rata-rata di atas ini indikasi boros energi
+};
 
 const formatDateForApi = (date) => {
   const pad = (n) => String(n).padStart(2, "0");
@@ -876,7 +884,8 @@ function Chiller() {
   const [currentPageByChannel, setCurrentPageByChannel] = useState({});
   const [isTableVisible, setIsTableVisible] = useState(true);
 
-  // State untuk Realtime Analysis (fetch 5 jam terakhir dari database, semua chiller)
+  // State untuk Realtime Analysis (fetch N jam terakhir dari database, semua chiller)
+  const [analysisHours, setAnalysisHours] = useState(DEFAULT_ANALYSIS_HOURS);
   const [realtimeAnalysisData, setRealtimeAnalysisData] = useState({});
   const [realtimeAnalysisLoading, setRealtimeAnalysisLoading] = useState(false);
   const [realtimeAnalysisError, setRealtimeAnalysisError] = useState(null);
@@ -930,12 +939,14 @@ function Chiller() {
     return () => wsRef.current?.close();
   }, []);
 
-  // ── REALTIME ANALYSIS: FETCH 5 JAM TERAKHIR DARI DATABASE ──
+  // ── REALTIME ANALYSIS: FETCH N JAM TERAKHIR DARI DATABASE ──
   // Pakai endpoint yang sama persis dengan tab Historical (getAllDataChiller),
   // tapi otomatis untuk ke-4 chiller sekaligus dan auto-refresh berkala.
-  const get5HourRange = () => {
+  // Rentang waktu (analysisHours) bisa diatur user, maksimal 24 jam.
+  const getAnalysisRange = (hours) => {
+    const safeHours = Math.min(Math.max(Number(hours) || DEFAULT_ANALYSIS_HOURS, 1), 24);
     const now = new Date();
-    const past = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    const past = new Date(now.getTime() - safeHours * 60 * 60 * 1000);
     return { startStr: formatDateForApi(past), finishStr: formatDateForApi(now) };
   };
 
@@ -945,7 +956,7 @@ function Chiller() {
       setRealtimeAnalysisError(null);
     }
     try {
-      const { startStr, finishStr } = get5HourRange();
+      const { startStr, finishStr } = getAnalysisRange(analysisHours);
       const results = await Promise.all(
         CHANNELS.map(async (channel) => {
           const res = await axios.get(`${API_BASE}/getAllDataChiller`, {
@@ -962,19 +973,20 @@ function Chiller() {
       setRealtimeAnalysisUpdatedAt(new Date());
     } catch (err) {
       console.error("Error fetching realtime analysis data:", err);
-      if (!background) setRealtimeAnalysisError("Gagal mengambil data analisa 5 jam terakhir. Coba lagi.");
+      if (!background) setRealtimeAnalysisError("Gagal mengambil data analisa. Coba lagi.");
     } finally {
       if (!background) setRealtimeAnalysisLoading(false);
     }
   };
 
+  // Refetch (foreground, dengan spinner) tiap kali rentang jam diganti, lalu auto-refresh berkala
   useEffect(() => {
     fetchRealtimeAnalysisData();
     const interval = setInterval(() => {
       fetchRealtimeAnalysisData({ background: true });
     }, ANALYSIS_REFRESH_MS);
     return () => clearInterval(interval);
-  }, []);
+  }, [analysisHours]);
 
   // Avg/Max/Min untuk data analisa 5 jam (dipakai bar chart & tabel ringkasan per-chiller)
   const getAnalysisStats = (chKey, metricKey) => {
@@ -1343,8 +1355,8 @@ function Chiller() {
   // ── RENDER COMPONENT: DETAIL CHART + STATS PER CHILLER (ANALYSIS) ──
   const renderChannelAnalysisBlock = (channel) => {
     const rows = realtimeAnalysisData[channel.key] || [];
-    const perfOptions = buildChannelChartOptions(channel, PERFORMANCE_METRICS, "Performance - 5 jam terakhir");
-    const effOptions = buildChannelChartOptions(channel, EFFICIENCY_METRICS, "Efficiency - 5 jam terakhir");
+    const perfOptions = buildChannelChartOptions(channel, PERFORMANCE_METRICS, `Performance - ${analysisHours} jam terakhir`);
+    const effOptions = buildChannelChartOptions(channel, EFFICIENCY_METRICS, `Efficiency - ${analysisHours} jam terakhir`);
 
     return (
       <div key={channel.key} className="mt-4 bg-card rounded-md shadow-lg p-2">
@@ -1361,12 +1373,12 @@ function Chiller() {
             {channel.label}
           </Text>
           <Text fontSize="xs" opacity={0.6} className="text-text">
-            ({rows.length} data poin / 5 jam)
+            ({rows.length} data poin / {analysisHours}h)
           </Text>
         </div>
 
         {rows.length === 0 ? (
-          <div className="text-text flex flex-col items-center py-10">No data in the last 5 hours</div>
+          <div className="text-text flex flex-col items-center py-10">No data in the selected window</div>
         ) : (
           <>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 px-1 pb-2">
@@ -1444,6 +1456,59 @@ function Chiller() {
     const avgKwTrLive = runningKwTr.length ? runningKwTr.reduce((a, b) => a + b, 0) / runningKwTr.length : null;
     const activeChillerCount = CHANNELS.filter((ch) => wsData[`${ch.key}_Capacity`] > 0).length;
 
+    // ── IMPROVISASI: total rata-rata beban sistem (kW) dari data N jam terakhir
+    const channelsWithKwInput = CHANNELS.map((ch) => getAnalysisStats(ch.key, "kwInput")).filter(
+      (s) => s.avg !== null
+    );
+    const totalAvgSystemLoad = channelsWithKwInput.reduce((sum, s) => sum + s.avg, 0);
+
+    // ── IMPROVISASI: uptime % tiap chiller selama window yang dipilih (dari data DB, bukan WS)
+    const uptimeData = CHANNELS.map((ch) => {
+      const rows = realtimeAnalysisData[ch.key] || [];
+      const runningCount = rows.filter((r) => Number(r.capacity) > 0).length;
+      const uptimePct = rows.length > 0 ? Number(((runningCount / rows.length) * 100).toFixed(1)) : null;
+      return { label: ch.label, uptimePct, color: isDarkMode ? ch.color.dark : ch.color.light };
+    });
+
+    // ── IMPROVISASI: ranking efisiensi (Avg COP) tiap chiller yang punya data
+    const efficiencyRanking = CHANNELS.map((ch) => ({
+      label: ch.label,
+      avgCop: getAnalysisStats(ch.key, "cop").avg,
+    }))
+      .filter((r) => r.avgCop !== null)
+      .sort((a, b) => b.avgCop - a.avgCop);
+
+    // ── IMPROVISASI: alert sederhana berbasis ambang batas (ANALYSIS_THRESHOLDS)
+    const alerts = [];
+    CHANNELS.forEach((ch) => {
+      const rows = realtimeAnalysisData[ch.key] || [];
+      if (rows.length === 0) return;
+      const copStats = getAnalysisStats(ch.key, "cop");
+      const dtStats = getAnalysisStats(ch.key, "deltaT");
+      const kwTrStats = getAnalysisStats(ch.key, "kwTr");
+      if (copStats.avg !== null && copStats.avg < ANALYSIS_THRESHOLDS.copMin) {
+        alerts.push({
+          channel: ch.label,
+          title: "COP Rendah",
+          detail: `Avg COP ${copStats.avg.toFixed(2)} (target > ${ANALYSIS_THRESHOLDS.copMin})`,
+        });
+      }
+      if (dtStats.avg !== null && dtStats.avg < ANALYSIS_THRESHOLDS.deltaTMin) {
+        alerts.push({
+          channel: ch.label,
+          title: "Delta T Rendah",
+          detail: `Avg Delta T ${dtStats.avg.toFixed(2)}°C (target > ${ANALYSIS_THRESHOLDS.deltaTMin}°C) - cek flow/fouling`,
+        });
+      }
+      if (kwTrStats.avg !== null && kwTrStats.avg > ANALYSIS_THRESHOLDS.kwTrMax) {
+        alerts.push({
+          channel: ch.label,
+          title: "KW/TR Tinggi",
+          detail: `Avg KW/TR ${kwTrStats.avg.toFixed(2)} (target < ${ANALYSIS_THRESHOLDS.kwTrMax}) - efisiensi menurun`,
+        });
+      }
+    });
+
     const capacityPieOptions = {
       theme: isDarkMode ? "dark2" : "light2",
       backgroundColor: isDarkMode ? "#171717" : "#ffffff",
@@ -1490,7 +1555,7 @@ function Chiller() {
       theme: isDarkMode ? "dark2" : "light2",
       backgroundColor: isDarkMode ? "#171717" : "#ffffff",
       height: 300,
-      title: { text: "Avg COP (5 Jam)", fontColor: isDarkMode ? "white" : "black", fontSize: 15 },
+      title: { text: `Avg COP (${analysisHours}h)`, fontColor: isDarkMode ? "white" : "black", fontSize: 15 },
       subtitles: [{ text: "Semakin tinggi semakin baik", fontColor: isDarkMode ? "#a3a3a3" : "#666", fontSize: 11 }],
       axisY: {
         title: "COP",
@@ -1520,7 +1585,7 @@ function Chiller() {
       theme: isDarkMode ? "dark2" : "light2",
       backgroundColor: isDarkMode ? "#171717" : "#ffffff",
       height: 300,
-      title: { text: "Avg KW/TR (5 Jam)", fontColor: isDarkMode ? "white" : "black", fontSize: 15 },
+      title: { text: `Avg KW/TR (${analysisHours}h)`, fontColor: isDarkMode ? "white" : "black", fontSize: 15 },
       subtitles: [{ text: "Semakin rendah semakin efisien", fontColor: isDarkMode ? "#a3a3a3" : "#666", fontSize: 11 }],
       axisY: {
         title: "KW/TR",
@@ -1546,6 +1611,30 @@ function Chiller() {
       ],
     };
 
+    const uptimeBarOptions = {
+      theme: isDarkMode ? "dark2" : "light2",
+      backgroundColor: isDarkMode ? "#171717" : "#ffffff",
+      height: 300,
+      title: { text: `Uptime (${analysisHours}h)`, fontColor: isDarkMode ? "white" : "black", fontSize: 15 },
+      subtitles: [{ text: "% waktu Capacity > 0", fontColor: isDarkMode ? "#a3a3a3" : "#666", fontSize: 11 }],
+      axisY: {
+        title: "Uptime (%)",
+        titleFontColor: isDarkMode ? "#d6d6d6" : "#474747",
+        gridColor: isDarkMode ? "#444" : "#bfbfbf",
+        labelFontColor: isDarkMode ? "#d6d6d6" : "#474747",
+        maximum: 100,
+      },
+      axisX: { labelFontColor: isDarkMode ? "white" : "black" },
+      data: [
+        {
+          type: "column",
+          indexLabel: "{y}%",
+          indexLabelFontColor: isDarkMode ? "#d6d6d6" : "#333",
+          dataPoints: uptimeData.map((d) => ({ label: d.label, y: d.uptimePct || 0, color: d.color })),
+        },
+      ],
+    };
+
     const systemLoadChartOptions = {
       zoomEnabled: true,
       theme: isDarkMode ? "dark2" : "light2",
@@ -1553,7 +1642,11 @@ function Chiller() {
       height: 380,
       title: { text: "System Power Draw Trend (KW Input)", fontColor: isDarkMode ? "white" : "black", fontSize: 16 },
       subtitles: [
-        { text: "5 jam terakhir, semua chiller ditumpuk sejajar", fontColor: isDarkMode ? "#a3a3a3" : "#666", fontSize: 11 },
+        {
+          text: `${analysisHours} jam terakhir, semua chiller ditumpuk sejajar`,
+          fontColor: isDarkMode ? "#a3a3a3" : "#666",
+          fontSize: 11,
+        },
       ],
       axisY: {
         title: "KW Input (kW)",
@@ -1591,9 +1684,24 @@ function Chiller() {
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 mt-8 mb-4">
           <Text className="text-text" fontWeight="bold" fontSize="lg">
-            Realtime Analysis (Last 5 Hours)
+            Realtime Analysis (Last {analysisHours}h)
           </Text>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Select
+              size="sm"
+              width="130px"
+              value={analysisHours}
+              onChange={(e) => setAnalysisHours(Number(e.target.value))}
+              sx={{
+                border: "1px solid",
+                borderColor: borderColor,
+                background: "var(--color-background)",
+              }}
+            >
+              {ANALYSIS_HOUR_OPTIONS.map((h) => (
+                <option key={h} value={h}>{`Last ${h}h`}</option>
+              ))}
+            </Select>
             <Text fontSize="xs" className="text-text" opacity={0.7}>
               {realtimeAnalysisUpdatedAt ? `Updated: ${realtimeAnalysisUpdatedAt.toLocaleTimeString()}` : "Belum dimuat"}
             </Text>
@@ -1609,11 +1717,15 @@ function Chiller() {
         </div>
 
         {/* KPI cards - ringkasan cepat */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
           <KpiCard label="Active Chillers" value={`${activeChillerCount} / ${CHANNELS.length}`} />
           <KpiCard label="Avg Capacity" value={avgCapacityLive !== null ? `${avgCapacityLive.toFixed(1)}%` : "-"} />
           <KpiCard label="Avg COP (Running)" value={avgCOPLive !== null ? avgCOPLive.toFixed(2) : "-"} />
           <KpiCard label="Avg KW/TR (Running)" value={avgKwTrLive !== null ? avgKwTrLive.toFixed(2) : "-"} />
+          <KpiCard
+            label="Total Avg System Load"
+            value={channelsWithKwInput.length ? `${totalAvgSystemLoad.toFixed(1)} kW` : "-"}
+          />
         </div>
 
         {realtimeAnalysisError && <div className="text-red-500 text-center mb-4">{realtimeAnalysisError}</div>}
@@ -1634,19 +1746,97 @@ function Chiller() {
           </div>
         </div>
 
-        {/* Data dari database (5 jam terakhir) */}
+        {/* Data dari database (rentang waktu dipilih user) */}
         {realtimeAnalysisLoading && !hasAnalysisData ? (
           <div className="flex flex-col items-center py-10">
             <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="lg" />
           </div>
         ) : hasAnalysisData ? (
           <>
+            {/* Alerts & Insights + Efficiency Ranking */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-card rounded-md shadow-lg p-4">
+                <Text className="text-text" fontWeight="bold" mb={3}>
+                  Alerts &amp; Insights
+                </Text>
+                {alerts.length === 0 ? (
+                  <div className="flex items-center gap-2">
+                    <Badge colorScheme="green">OK</Badge>
+                    <Text fontSize="sm" className="text-text">
+                      Semua chiller dalam rentang operasi normal.
+                    </Text>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {alerts.map((a, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <Badge colorScheme="orange" whiteSpace="nowrap">
+                          {a.channel}
+                        </Badge>
+                        <div>
+                          <Text fontSize="sm" fontWeight="bold" className="text-text">
+                            {a.title}
+                          </Text>
+                          <Text fontSize="xs" className="text-text" opacity={0.75}>
+                            {a.detail}
+                          </Text>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-card rounded-md shadow-lg p-4">
+                <Text className="text-text" fontWeight="bold" mb={3}>
+                  Efficiency Ranking (Avg COP)
+                </Text>
+                {efficiencyRanking.length === 0 ? (
+                  <Text fontSize="sm" className="text-text" opacity={0.7}>
+                    Belum ada data COP di window ini.
+                  </Text>
+                ) : (
+                  <TableContainer>
+                    <Table size="sm" variant="simple">
+                      <Thead>
+                        <Tr>
+                          <Th sx={{ color: tulisanColor }}>#</Th>
+                          <Th sx={{ color: tulisanColor }}>Chiller</Th>
+                          <Th sx={{ color: tulisanColor }}>Avg COP</Th>
+                          <Th sx={{ color: tulisanColor }}></Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {efficiencyRanking.map((r, idx) => (
+                          <Tr key={r.label}>
+                            <Td>{idx + 1}</Td>
+                            <Td>{r.label}</Td>
+                            <Td>{r.avgCop.toFixed(2)}</Td>
+                            <Td>
+                              {idx === 0 && <Badge colorScheme="green">Best</Badge>}
+                              {idx === efficiencyRanking.length - 1 && efficiencyRanking.length > 1 && (
+                                <Badge colorScheme="orange">Lowest</Badge>
+                              )}
+                            </Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </div>
+            </div>
+
+            {/* Efficiency & Uptime bar charts */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <div className="bg-card rounded-md shadow-lg p-2">
                 <CanvasJSChart options={copBarOptions} />
               </div>
               <div className="bg-card rounded-md shadow-lg p-2">
                 <CanvasJSChart options={kwTrBarOptions} />
+              </div>
+              <div className="bg-card rounded-md shadow-lg p-2">
+                <CanvasJSChart options={uptimeBarOptions} />
               </div>
             </div>
 
@@ -1661,7 +1851,7 @@ function Chiller() {
           </>
         ) : (
           <div className="text-text text-center py-10 bg-card rounded-md shadow-lg">
-            No data found in the database for the last 5 hours.
+            No data found in the database for the selected window.
           </div>
         )}
       </div>
