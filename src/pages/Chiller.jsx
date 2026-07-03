@@ -63,12 +63,31 @@ const METRICS = [
 ];
 
 
+// Grouping metrik untuk chart analisa per-chiller (biar sumbu Y gak numpuk)
+const PERFORMANCE_METRICS = METRICS.filter((m) => ["capacity", "current", "kwInput", "kwOutput"].includes(m.key));
+const EFFICIENCY_METRICS = METRICS.filter((m) => ["cop", "deltaT", "kwTr"].includes(m.key));
+const ANALYSIS_REFRESH_MS = 5 * 60 * 1000; // auto refresh data analisa tiap 5 menit
+
 const formatDateForApi = (date) => {
   const pad = (n) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
     date.getHours()
   )}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 };
+
+// Parse "YYYY-MM-DD HH:mm:ss" dari DB jadi Date object buat sumbu waktu di chart
+const parseDbDate = (dateStr) => {
+  if (!dateStr) return null;
+  return new Date(String(dateStr).replace(" ", "T"));
+};
+
+// Kartu kecil untuk ringkasan KPI di atas panel analisa realtime
+const KpiCard = ({ label, value }) => (
+  <div className="bg-card rounded-md shadow-lg py-4 px-3 flex flex-col items-center justify-center">
+    <span className="text-text text-xs opacity-70 mb-1 text-center">{label}</span>
+    <span className="text-text text-xl font-bold">{value}</span>
+  </div>
+);
 
 function Chiller() {
   // ── STATE ──────────────────────────────────────────────────
@@ -92,6 +111,12 @@ function Chiller() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPageByChannel, setCurrentPageByChannel] = useState({});
   const [isTableVisible, setIsTableVisible] = useState(true);
+
+  // State untuk Realtime Analysis (fetch 5 jam terakhir dari database, semua chiller)
+  const [realtimeAnalysisData, setRealtimeAnalysisData] = useState({});
+  const [realtimeAnalysisLoading, setRealtimeAnalysisLoading] = useState(false);
+  const [realtimeAnalysisError, setRealtimeAnalysisError] = useState(null);
+  const [realtimeAnalysisUpdatedAt, setRealtimeAnalysisUpdatedAt] = useState(null);
 
   const userGlobal = useSelector((state) => state.user.user);
 
@@ -140,6 +165,107 @@ function Chiller() {
     connectWS();
     return () => wsRef.current?.close();
   }, []);
+
+  // ── REALTIME ANALYSIS: FETCH 5 JAM TERAKHIR DARI DATABASE ──
+  // Pakai endpoint yang sama persis dengan tab Historical (getAllDataChiller),
+  // tapi otomatis untuk ke-4 chiller sekaligus dan auto-refresh berkala.
+  const get5HourRange = () => {
+    const now = new Date();
+    const past = new Date(now.getTime() - 5 * 60 * 60 * 1000);
+    return { startStr: formatDateForApi(past), finishStr: formatDateForApi(now) };
+  };
+
+  const fetchRealtimeAnalysisData = async ({ background = false } = {}) => {
+    if (!background) {
+      setRealtimeAnalysisLoading(true);
+      setRealtimeAnalysisError(null);
+    }
+    try {
+      const { startStr, finishStr } = get5HourRange();
+      const results = await Promise.all(
+        CHANNELS.map(async (channel) => {
+          const res = await axios.get(`${API_BASE}/getAllDataChiller`, {
+            params: { area: channel.table, start: startStr, finish: finishStr },
+          });
+          return [channel.key, res.data];
+        })
+      );
+      const newData = {};
+      results.forEach(([chKey, rows]) => {
+        newData[chKey] = rows;
+      });
+      setRealtimeAnalysisData(newData);
+      setRealtimeAnalysisUpdatedAt(new Date());
+    } catch (err) {
+      console.error("Error fetching realtime analysis data:", err);
+      if (!background) setRealtimeAnalysisError("Gagal mengambil data analisa 5 jam terakhir. Coba lagi.");
+    } finally {
+      if (!background) setRealtimeAnalysisLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRealtimeAnalysisData();
+    const interval = setInterval(() => {
+      fetchRealtimeAnalysisData({ background: true });
+    }, ANALYSIS_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Avg/Max/Min untuk data analisa 5 jam (dipakai bar chart & tabel ringkasan per-chiller)
+  const getAnalysisStats = (chKey, metricKey) => {
+    const rows = realtimeAnalysisData[chKey] || [];
+    const values = rows.map((r) => Number(r[metricKey])).filter((v) => !Number.isNaN(v));
+    if (values.length === 0) return { avg: null, max: null, min: null };
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    return { avg, max: Math.max(...values), min: Math.min(...values) };
+  };
+
+  // Builder chart tren per-chiller (dipakai untuk grafik Performance & Efficiency masing2 chiller)
+  const buildChannelChartOptions = (channel, metricsSubset, subtitle) => {
+    const rows = realtimeAnalysisData[channel.key] || [];
+    const palette = ["#1e6fd9", "#e8590c", "#0f9960", "#c2255c", "#7048e8", "#f2b705", "#0aa1a1"];
+    const axisY = metricsSubset.map((metric, idx) => ({
+      title: metric.unit ? `${metric.label} (${metric.unit})` : metric.label,
+      titleFontColor: isDarkMode ? "#d6d6d6" : "#474747",
+      suffix: metric.unit ? ` ${metric.unit}` : "",
+      gridColor: idx === 0 ? (isDarkMode ? "#444" : "#bfbfbf") : "transparent",
+      labelFontColor: isDarkMode ? "#d6d6d6" : "#474747",
+      lineColor: isDarkMode ? "#d6d6d6" : "#474747",
+      tickColor: isDarkMode ? "#d6d6d6" : "#474747",
+    }));
+    const data = metricsSubset.map((metric, idx) => {
+      const color = palette[idx % palette.length];
+      return {
+        type: "line",
+        name: metric.unit ? `${metric.label} (${metric.unit})` : metric.label,
+        axisYIndex: idx,
+        showInLegend: true,
+        color,
+        lineColor: color,
+        markerColor: color,
+        dataPoints: rows.map((row) => ({ x: parseDbDate(row.date), y: Number(row[metric.key]), label: row.date })),
+      };
+    });
+    return {
+      zoomEnabled: true,
+      theme: isDarkMode ? "dark2" : "light2",
+      backgroundColor: isDarkMode ? "#171717" : "#ffffff",
+      height: 320,
+      title: { text: channel.label, fontColor: isDarkMode ? "white" : "black", fontSize: 15 },
+      subtitles: [{ text: subtitle, fontColor: isDarkMode ? "#a3a3a3" : "#666", fontSize: 11 }],
+      axisY,
+      axisX: {
+        valueFormatString: "HH:mm",
+        lineColor: isDarkMode ? "#d6d6d6" : "#474747",
+        labelFontColor: isDarkMode ? "white" : "black",
+        tickColor: isDarkMode ? "#d6d6d6" : "#474747",
+      },
+      toolTip: { shared: true },
+      legend: { fontColor: isDarkMode ? "white" : "black", fontSize: 11 },
+      data,
+    };
+  };
 
   // ── FETCH DATA HISTORICAL ──────────────────────────────────
   const fetchAllData = async (startStr, finishStr, { background = false, mode = "historical" } = {}) => {
