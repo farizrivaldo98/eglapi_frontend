@@ -257,6 +257,7 @@ function Chiller() {
         color,
         lineColor: color,
         markerColor: color,
+        xValueFormatString: "HH:mm",
         dataPoints: rows.map((row) => ({ x: parseDbDate(row.date), y: Number(row[metric.key]), label: row.date })),
       };
     });
