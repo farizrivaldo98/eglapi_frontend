@@ -101,18 +101,15 @@ import { useSelector } from "react-redux";
     };
 
     // ── Interval averaging helpers ──────────────────────────────────────────
-    // Data mentah dari DB per 1 menit. Kalau interval > 1 menit, data di-bucket
-    // per N menit (align ke kelipatan N dari epoch) lalu tiap bucket di-average.
+    // Data mentah dari DB per 1 menit, sudah terurut waktu ascending dari backend.
+    // Kalau interval > 1 menit, tinggal kelompokkan tiap N baris berurutan lalu
+    // di-average. Ini sengaja TIDAK parsing/convert tanggal (x atau date) sama
+    // sekali, karena format x di getTempChart beda dengan format date di
+    // getAllDataEMS dan nggak semuanya valid di-parse new Date() -> makanya
+    // kemarin chart cuma nyisa 1 titik (titik lain gagal parse & ke-skip).
+    // x/date hasil average diambil apa adanya dari baris pertama tiap grup.
 
-    const toTimestamp = (v) => (v instanceof Date ? v.getTime() : new Date(v).getTime());
-
-    const pad2 = (n) => String(n).padStart(2, "0");
-    const formatDateTime = (d) =>
-      `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(
-        d.getHours()
-      )}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-
-    // dataset {x, y} dari getTempChart (format 0/1/2) -> di-average per bucket N menit
+    // dataset {x, y} dari getTempChart (format 0/1/2) -> average tiap N baris
     const aggregateChartData = (data, intervalMin) => {
       if (!Array.isArray(data) || data.length === 0) return data;
       if (intervalMin <= 1) {
@@ -120,56 +117,38 @@ import { useSelector } from "react-redux";
         return data.map((d) => ({ ...d, y: Number(d.y.toFixed(2)) }));
       }
 
-      const bucketMs = intervalMin * 60 * 1000;
-      const buckets = new Map();
-
-      data.forEach((d) => {
-        const ts = toTimestamp(d.x);
-        if (isNaN(ts)) return;
-        const bucketStart = Math.floor(ts / bucketMs) * bucketMs;
-        if (!buckets.has(bucketStart)) buckets.set(bucketStart, { sum: 0, count: 0 });
-        const b = buckets.get(bucketStart);
-        b.sum += Number(d.y) || 0;
-        b.count += 1;
-      });
-
-      return Array.from(buckets.entries())
-        .sort((a, b) => a[0] - b[0])
-        .map(([bucketStart, b]) => ({
-          x: new Date(bucketStart),
-          y: Number((b.sum / b.count).toFixed(2)),
-        }));
+      const result = [];
+      for (let i = 0; i < data.length; i += intervalMin) {
+        const chunk = data.slice(i, i + intervalMin);
+        const sum = chunk.reduce((acc, d) => acc + (Number(d.y) || 0), 0);
+        result.push({
+          x: chunk[0].x, // ambil x baris pertama di grup, apa adanya
+          y: Number((sum / chunk.length).toFixed(2)),
+        });
+      }
+      return result;
     };
 
-    // dataset tabel {id, date, temp, RH, DP} dari getAllDataEMS -> di-average per bucket N menit
+    // dataset tabel {id, date, temp, RH, DP} dari getAllDataEMS -> average tiap N baris
     const aggregateTableData = (data, intervalMin) => {
       if (!Array.isArray(data) || data.length === 0 || intervalMin <= 1) return data;
 
-      const bucketMs = intervalMin * 60 * 1000;
-      const buckets = new Map();
-
-      data.forEach((row) => {
-        const ts = toTimestamp(row.date);
-        if (isNaN(ts)) return;
-        const bucketStart = Math.floor(ts / bucketMs) * bucketMs;
-        if (!buckets.has(bucketStart))
-          buckets.set(bucketStart, { temp: 0, RH: 0, DP: 0, count: 0 });
-        const b = buckets.get(bucketStart);
-        b.temp += Number(row.temp) || 0;
-        b.RH += Number(row.RH) || 0;
-        b.DP += Number(row.DP) || 0;
-        b.count += 1;
-      });
-
-      return Array.from(buckets.entries())
-        .sort((a, b) => a[0] - b[0])
-        .map(([bucketStart, b], idx) => ({
-          id: idx + 1,
-          date: formatDateTime(new Date(bucketStart)),
-          temp: Number((b.temp / b.count).toFixed(2)),
-          RH: Number((b.RH / b.count).toFixed(2)),
-          DP: Number((b.DP / b.count).toFixed(2)),
-        }));
+      const result = [];
+      let idCounter = 1;
+      for (let i = 0; i < data.length; i += intervalMin) {
+        const chunk = data.slice(i, i + intervalMin);
+        const sumTemp = chunk.reduce((acc, r) => acc + (Number(r.temp) || 0), 0);
+        const sumRH = chunk.reduce((acc, r) => acc + (Number(r.RH) || 0), 0);
+        const sumDP = chunk.reduce((acc, r) => acc + (Number(r.DP) || 0), 0);
+        result.push({
+          id: idCounter++,
+          date: chunk[0].date, // ambil date baris pertama di grup, apa adanya
+          temp: Number((sumTemp / chunk.length).toFixed(2)),
+          RH: Number((sumRH / chunk.length).toFixed(2)),
+          DP: Number((sumDP / chunk.length).toFixed(2)),
+        });
+      }
+      return result;
     };
     // ─────────────────────────────────────────────────────────────────────────
 
