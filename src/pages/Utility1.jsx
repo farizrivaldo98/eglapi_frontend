@@ -36,6 +36,7 @@ import { useSelector } from "react-redux";
     const [areaPicker, setAreaPicker] = useState();
     const [datePickerStart, setDatePickerStart] = useState();
     const [datePickerFinish, setDatePickerFinish] = useState();
+    const [intervalMinutes, setIntervalMinutes] = useState(1); // interval averaging (menit), 1-60
     const [maxSuhu, setmaxSuhu] = useState([]);
     const [minSuhu, setminSuhu] = useState([]);
     const [avgSuhu, setavgSuhu] = useState([]);
@@ -99,6 +100,58 @@ import { useSelector } from "react-redux";
       });
     };
 
+    // ── Interval averaging helpers ──────────────────────────────────────────
+    // Data mentah dari DB per 1 menit, sudah terurut waktu ascending dari backend.
+    // Kalau interval > 1 menit, tinggal kelompokkan tiap N baris berurutan lalu
+    // di-average. Ini sengaja TIDAK parsing/convert tanggal (x atau date) sama
+    // sekali, karena format x di getTempChart beda dengan format date di
+    // getAllDataEMS dan nggak semuanya valid di-parse new Date() -> makanya
+    // kemarin chart cuma nyisa 1 titik (titik lain gagal parse & ke-skip).
+    // x/date hasil average diambil apa adanya dari baris pertama tiap grup.
+
+    // dataset {x, y} dari getTempChart (format 0/1/2) -> average tiap N baris
+    const aggregateChartData = (data, intervalMin) => {
+      if (!Array.isArray(data) || data.length === 0) return data;
+      if (intervalMin <= 1) {
+        // interval 1 menit = data asli, cuma dibulatin 2 desimal (sama kayak behavior sebelumnya)
+        return data.map((d) => ({ ...d, y: Number(d.y.toFixed(2)) }));
+      }
+
+      const result = [];
+      for (let i = 0; i < data.length; i += intervalMin) {
+        const chunk = data.slice(i, i + intervalMin);
+        const sum = chunk.reduce((acc, d) => acc + (Number(d.y) || 0), 0);
+        result.push({
+          x: chunk[0].x, // ambil x baris pertama di grup, apa adanya
+          y: Number((sum / chunk.length).toFixed(2)),
+        });
+      }
+      return result;
+    };
+
+    // dataset tabel {id, date, temp, RH, DP} dari getAllDataEMS -> average tiap N baris
+    const aggregateTableData = (data, intervalMin) => {
+      if (!Array.isArray(data) || data.length === 0 || intervalMin <= 1) return data;
+
+      const result = [];
+      let idCounter = 1;
+      for (let i = 0; i < data.length; i += intervalMin) {
+        const chunk = data.slice(i, i + intervalMin);
+        const sumTemp = chunk.reduce((acc, r) => acc + (Number(r.temp) || 0), 0);
+        const sumRH = chunk.reduce((acc, r) => acc + (Number(r.RH) || 0), 0);
+        const sumDP = chunk.reduce((acc, r) => acc + (Number(r.DP) || 0), 0);
+        result.push({
+          id: idCounter++,
+          date: chunk[0].date, // ambil date baris pertama di grup, apa adanya
+          temp: Number((sumTemp / chunk.length).toFixed(2)),
+          RH: Number((sumRH / chunk.length).toFixed(2)),
+          DP: Number((sumDP / chunk.length).toFixed(2)),
+        });
+      }
+      return result;
+    };
+    // ─────────────────────────────────────────────────────────────────────────
+
     // ── DIMODIFIKASI: tambah logAuditAction setelah fetch berhasil ──
     const getSubmit = async () => {
       setLoading(true);
@@ -149,10 +202,16 @@ import { useSelector } from "react-redux";
           }
         );
 
-        setTempChartData(response1.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) })));
-        setRhChartData(response2.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) })));
-        setDpChartData(response3.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) })));
-        setAllDataTable(response4.data);
+        // interval dipakai apa adanya dari state input (sudah dilimit 1-60 di handler),
+        // fallback ke 1 kalau kosong/invalid saat submit ditekan
+        let usedInterval = parseInt(intervalMinutes, 10);
+        if (isNaN(usedInterval) || usedInterval < 1) usedInterval = 1;
+        if (usedInterval > 60) usedInterval = 60;
+
+        setTempChartData(aggregateChartData(response1.data, usedInterval));
+        setRhChartData(aggregateChartData(response2.data, usedInterval));
+        setDpChartData(aggregateChartData(response3.data, usedInterval));
+        setAllDataTable(aggregateTableData(response4.data, usedInterval));
         setIsTableVisible(true);
 
         if (
@@ -197,9 +256,10 @@ import { useSelector } from "react-redux";
 
         // ── AUDIT: catat VIEW_UTILITY ─────────────────────────
         await logAuditAction("VIEW_UTILITY", {
-          area:   areaPicker,
-          start:  datePickerStart,
-          finish: datePickerFinish,
+          area:     areaPicker,
+          start:    datePickerStart,
+          finish:   datePickerFinish,
+          interval: usedInterval,
         });
         // ──────────────────────────────────────────────────────
 
@@ -482,6 +542,27 @@ const exportToPDF = async () => {
       console.log(dataInput);
     };
 
+    // ── Interval averaging: bebas diketik, dilimit max 60 realtime, min 1 saat blur ──
+    const handleIntervalChange = (e) => {
+      const raw = e.target.value;
+      if (raw === "") {
+        setIntervalMinutes(""); // biar bisa dihapus dulu sebelum ngetik ulang
+        return;
+      }
+      let val = parseInt(raw, 10);
+      if (isNaN(val)) return;
+      if (val > 60) val = 60;
+      setIntervalMinutes(val);
+    };
+
+    const handleIntervalBlur = () => {
+      let val = parseInt(intervalMinutes, 10);
+      if (isNaN(val) || val < 1) val = 1;
+      if (val > 60) val = 60;
+      setIntervalMinutes(val);
+    };
+    // ──────────────────────────────────────────────────────────────────────────────
+
     useEffect(() => {
       const handleThemeChange = () => {
         const currentTheme = document.documentElement.getAttribute("data-theme");
@@ -637,6 +718,27 @@ const exportToPDF = async () => {
                   filter: isDarkMode ? "invert(1)" : "none",
                 },
               }}
+              sx={{
+                border: "1px solid",
+                borderColor: borderColor,
+                borderRadius: "0.395rem",
+                background: "var(--color-background)",
+                _hover: { borderColor: hoverBorderColor },
+              }}
+            />
+          </div>
+          <div>
+            <h5 className="mb-1"> Interval (menit) </h5>
+            <Input
+              onChange={handleIntervalChange}
+              onBlur={handleIntervalBlur}
+              value={intervalMinutes}
+              placeholder="1"
+              size="md"
+              type="number"
+              min={1}
+              max={60}
+              width="120px"
               sx={{
                 border: "1px solid",
                 borderColor: borderColor,
