@@ -36,7 +36,6 @@ import { useSelector } from "react-redux";
     const [areaPicker, setAreaPicker] = useState();
     const [datePickerStart, setDatePickerStart] = useState();
     const [datePickerFinish, setDatePickerFinish] = useState();
-    const [intervalMinutes, setIntervalMinutes] = useState(1); // interval averaging (menit), 1-60
     const [maxSuhu, setmaxSuhu] = useState([]);
     const [minSuhu, setminSuhu] = useState([]);
     const [avgSuhu, setavgSuhu] = useState([]);
@@ -100,79 +99,6 @@ import { useSelector } from "react-redux";
       });
     };
 
-    // ── Interval averaging helpers ──────────────────────────────────────────
-    // Data mentah dari DB per 1 menit. Kalau interval > 1 menit, data di-bucket
-    // per N menit (align ke kelipatan N dari epoch) lalu tiap bucket di-average.
-
-    const toTimestamp = (v) => (v instanceof Date ? v.getTime() : new Date(v).getTime());
-
-    const pad2 = (n) => String(n).padStart(2, "0");
-    const formatDateTime = (d) =>
-      `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())} ${pad2(
-        d.getHours()
-      )}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
-
-    // dataset {x, y} dari getTempChart (format 0/1/2) -> di-average per bucket N menit
-    const aggregateChartData = (data, intervalMin) => {
-      if (!Array.isArray(data) || data.length === 0) return data;
-      if (intervalMin <= 1) {
-        // interval 1 menit = data asli, cuma dibulatin 2 desimal (sama kayak behavior sebelumnya)
-        return data.map((d) => ({ ...d, y: Number(d.y.toFixed(2)) }));
-      }
-
-      const bucketMs = intervalMin * 60 * 1000;
-      const buckets = new Map();
-
-      data.forEach((d) => {
-        const ts = toTimestamp(d.x);
-        if (isNaN(ts)) return;
-        const bucketStart = Math.floor(ts / bucketMs) * bucketMs;
-        if (!buckets.has(bucketStart)) buckets.set(bucketStart, { sum: 0, count: 0 });
-        const b = buckets.get(bucketStart);
-        b.sum += Number(d.y) || 0;
-        b.count += 1;
-      });
-
-      return Array.from(buckets.entries())
-        .sort((a, b) => a[0] - b[0])
-        .map(([bucketStart, b]) => ({
-          x: new Date(bucketStart),
-          y: Number((b.sum / b.count).toFixed(2)),
-        }));
-    };
-
-    // dataset tabel {id, date, temp, RH, DP} dari getAllDataEMS -> di-average per bucket N menit
-    const aggregateTableData = (data, intervalMin) => {
-      if (!Array.isArray(data) || data.length === 0 || intervalMin <= 1) return data;
-
-      const bucketMs = intervalMin * 60 * 1000;
-      const buckets = new Map();
-
-      data.forEach((row) => {
-        const ts = toTimestamp(row.date);
-        if (isNaN(ts)) return;
-        const bucketStart = Math.floor(ts / bucketMs) * bucketMs;
-        if (!buckets.has(bucketStart))
-          buckets.set(bucketStart, { temp: 0, RH: 0, DP: 0, count: 0 });
-        const b = buckets.get(bucketStart);
-        b.temp += Number(row.temp) || 0;
-        b.RH += Number(row.RH) || 0;
-        b.DP += Number(row.DP) || 0;
-        b.count += 1;
-      });
-
-      return Array.from(buckets.entries())
-        .sort((a, b) => a[0] - b[0])
-        .map(([bucketStart, b], idx) => ({
-          id: idx + 1,
-          date: formatDateTime(new Date(bucketStart)),
-          temp: Number((b.temp / b.count).toFixed(2)),
-          RH: Number((b.RH / b.count).toFixed(2)),
-          DP: Number((b.DP / b.count).toFixed(2)),
-        }));
-    };
-    // ─────────────────────────────────────────────────────────────────────────
-
     // ── DIMODIFIKASI: tambah logAuditAction setelah fetch berhasil ──
     const getSubmit = async () => {
       setLoading(true);
@@ -223,16 +149,10 @@ import { useSelector } from "react-redux";
           }
         );
 
-        // interval dipakai apa adanya dari state input (sudah dilimit 1-60 di handler),
-        // fallback ke 1 kalau kosong/invalid saat submit ditekan
-        let usedInterval = parseInt(intervalMinutes, 10);
-        if (isNaN(usedInterval) || usedInterval < 1) usedInterval = 1;
-        if (usedInterval > 60) usedInterval = 60;
-
-        setTempChartData(aggregateChartData(response1.data, usedInterval));
-        setRhChartData(aggregateChartData(response2.data, usedInterval));
-        setDpChartData(aggregateChartData(response3.data, usedInterval));
-        setAllDataTable(aggregateTableData(response4.data, usedInterval));
+        setTempChartData(response1.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) })));
+        setRhChartData(response2.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) })));
+        setDpChartData(response3.data.map(d => ({ ...d, y: Number(d.y.toFixed(2)) })));
+        setAllDataTable(response4.data);
         setIsTableVisible(true);
 
         if (
@@ -277,10 +197,9 @@ import { useSelector } from "react-redux";
 
         // ── AUDIT: catat VIEW_UTILITY ─────────────────────────
         await logAuditAction("VIEW_UTILITY", {
-          area:     areaPicker,
-          start:    datePickerStart,
-          finish:   datePickerFinish,
-          interval: usedInterval,
+          area:   areaPicker,
+          start:  datePickerStart,
+          finish: datePickerFinish,
         });
         // ──────────────────────────────────────────────────────
 
@@ -563,27 +482,6 @@ const exportToPDF = async () => {
       console.log(dataInput);
     };
 
-    // ── Interval averaging: bebas diketik, dilimit max 60 realtime, min 1 saat blur ──
-    const handleIntervalChange = (e) => {
-      const raw = e.target.value;
-      if (raw === "") {
-        setIntervalMinutes(""); // biar bisa dihapus dulu sebelum ngetik ulang
-        return;
-      }
-      let val = parseInt(raw, 10);
-      if (isNaN(val)) return;
-      if (val > 60) val = 60;
-      setIntervalMinutes(val);
-    };
-
-    const handleIntervalBlur = () => {
-      let val = parseInt(intervalMinutes, 10);
-      if (isNaN(val) || val < 1) val = 1;
-      if (val > 60) val = 60;
-      setIntervalMinutes(val);
-    };
-    // ──────────────────────────────────────────────────────────────────────────────
-
     useEffect(() => {
       const handleThemeChange = () => {
         const currentTheme = document.documentElement.getAttribute("data-theme");
@@ -739,27 +637,6 @@ const exportToPDF = async () => {
                   filter: isDarkMode ? "invert(1)" : "none",
                 },
               }}
-              sx={{
-                border: "1px solid",
-                borderColor: borderColor,
-                borderRadius: "0.395rem",
-                background: "var(--color-background)",
-                _hover: { borderColor: hoverBorderColor },
-              }}
-            />
-          </div>
-          <div>
-            <h5 className="mb-1"> Interval (menit) </h5>
-            <Input
-              onChange={handleIntervalChange}
-              onBlur={handleIntervalBlur}
-              value={intervalMinutes}
-              placeholder="1"
-              size="md"
-              type="number"
-              min={1}
-              max={60}
-              width="120px"
               sx={{
                 border: "1px solid",
                 borderColor: borderColor,
