@@ -523,6 +523,13 @@ const exportToPDF = async () => {
   }
 
   doc.save(`table-data-EMS-${fileSuffix}.pdf`);
+
+    doc.save(`table-data-EMS-${fileSuffix}.pdf`);
+        await logAuditAction("EXPORT_PDF", {
+          area:   areaPicker,
+          start:  datePickerStart,
+          finish: datePickerFinish,
+        });
 };
 // ────────────────────────────────────────────────────────
 

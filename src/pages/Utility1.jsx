@@ -463,12 +463,7 @@ const exportToPDF = async () => {
     doc.putTotalPages(totalPagesExp);
   }
 
-  doc.save(`table-data-EMS-${fileSuffix}.pdf`);
-        await logAuditAction("EXPORT_PDF", {
-          area:   areaPicker,
-          start:  datePickerStart,
-          finish: datePickerFinish,
-        });
+
 };
 // ────────────────────────────────────────────────────────
 
