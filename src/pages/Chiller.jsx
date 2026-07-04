@@ -269,7 +269,7 @@ function Chiller() {
       subtitles: [{ text: subtitle, fontColor: isDarkMode ? "#a3a3a3" : "#666", fontSize: 11 }],
       axisY,
       axisX: {
-        valueFormatString: "",
+        valueFormatString: "HH:mm",
         lineColor: isDarkMode ? "#d6d6d6" : "#474747",
         labelFontColor: isDarkMode ? "white" : "black",
         tickColor: isDarkMode ? "#d6d6d6" : "#474747",
@@ -403,8 +403,8 @@ function Chiller() {
         name: `${channel.label} - ${metric.label}`,
         axisYIndex: metricIndex,
         showInLegend: true,
-        xValueFormatString: "",
-        yValueFormatString: "",
+        xValueFormatString: "HH:mm",
+        yValueFormatString: "HH:mm",
         color,
         lineColor: color,
         markerColor: color,
@@ -892,7 +892,7 @@ function Chiller() {
         labelFontColor: isDarkMode ? "#d6d6d6" : "#474747",
       },
       axisX: {
-        valueFormatString: "",
+        valueFormatString: "HH:mm",
         labelFontColor: isDarkMode ? "white" : "black",
         lineColor: isDarkMode ? "#d6d6d6" : "#474747",
         tickColor: isDarkMode ? "#d6d6d6" : "#474747",
