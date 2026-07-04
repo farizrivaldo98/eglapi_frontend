@@ -374,6 +374,11 @@ const exportToPDF = async () => {
     { header: "RH", dataKey: "RH" },
     { header: "DP", dataKey: "DP" },
   ];
+      await logAuditAction("EXPORT_PDF", {
+          area:   areaPicker,
+          start:  datePickerStart,
+          finish: datePickerFinish,
+        });
 
   const drawHeader = () => {
     // Logo perusahaan asli (Kiri atas)
