@@ -248,14 +248,23 @@ function ChillerVNC({ apiBase }) {
 
           {/* Area layar VNC — WAJIB punya ukuran eksplisit sebelum RFB connect,
               kalau nggak layar remote ke-resize jadi 0 dan hasilnya blank walau status "connected". */}
-          <Box position="relative" width="100%" height={{ base: "300px", md: "520px" }} bg="black" borderRadius="md" overflow="hidden">
-            <Box ref={screenRef} position="absolute" top={0} left={0} right={0} bottom={0} width="100%" height="100%" />
-            {status !== "connected" && (
-              <div className="absolute inset-0 flex items-center justify-center text-center text-gray-400 text-sm pointer-events-none px-4">
-                {status === "connecting" ? "Menghubungkan ke VNC..." : "Nyalakan toggle di atas untuk mulai monitoring"}
-              </div>
-            )}
-          </Box>
+      <Box
+  position="relative"
+  width="100%"
+  maxWidth="1280px"
+  mx="auto"
+  aspectRatio={16 / 9}
+  bg="black"
+  borderRadius="md"
+  overflow="hidden"
+>
+  <Box ref={screenRef} position="absolute" top={0} left={0} right={0} bottom={0} width="100%" height="100%" />
+  {status !== "connected" && (
+    <div className="absolute inset-0 flex items-center justify-center text-center text-gray-400 text-sm pointer-events-none px-4">
+      {status === "connecting" ? "Menghubungkan ke VNC..." : "Nyalakan toggle di atas untuk mulai monitoring"}
+    </div>
+  )}
+</Box>
         </div>
       )}
     </div>
