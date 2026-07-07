@@ -248,12 +248,12 @@ function ChillerVNC({ apiBase }) {
 
           {/* Area layar VNC — WAJIB punya ukuran eksplisit sebelum RFB connect,
               kalau nggak layar remote ke-resize jadi 0 dan hasilnya blank walau status "connected". */}
-    <Box
+      <Box
   position="relative"
   width="100%"
-  maxWidth="1280px" // Bisa dibesarkan jika ingin tampilan maksimal di layar lebar
+  maxWidth="1280px"
   mx="auto"
-  aspectRatio="16/9" // Menjamin kotak selalu berukuran proporsional Weintek
+  sx={{ paddingBottom: "41%" }}  // 75% = rasio 4:3. Buat 16:9 pakai "56.25%"
   bg="black"
   borderRadius="md"
   overflow="hidden"
