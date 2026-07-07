@@ -10,7 +10,7 @@ import {
   Badge,
   useColorModeValue,
 } from "@chakra-ui/react";
-import RFB from "@novnc/novnc/core/rfb.js";
+
 
 // ────────────────────────────────────────────────────────────
 // KONFIGURASI VNC MONITORING
@@ -61,13 +61,68 @@ function ChillerVNC({ apiBase }) {
   const isBusy = status === "connected" || status === "connecting";
 
   // ── DISCONNECT ───────────────────────────────────────────────
-  const disconnect = useCallback(() => {
-    if (rfbRef.current) {
-      rfbRef.current.disconnect();
-      rfbRef.current = null;
-    }
-    setStatus((prev) => (prev === "connected" || prev === "connecting" ? "disconnected" : prev));
-  }, []);
+const connect = useCallback(async () => {
+  if (!screenRef.current) return;
+  if (!host) {
+    setErrorMsg("Isi IP target dulu.");
+    return;
+  }
+  if (!wsOrigin) {
+    setErrorMsg("apiBase tidak valid, gak bisa nentuin alamat proxy VNC.");
+    return;
+  }
+
+  setErrorMsg("");
+  setStatus("connecting");
+
+  if (rfbRef.current) {
+    rfbRef.current.disconnect();
+    rfbRef.current = null;
+  }
+
+  let RFB;
+  try {
+    const mod = await import(/* webpackIgnore: true */ "https://cdn.jsdelivr.net/npm/@novnc/novnc@1.7.0/core/rfb.js");
+    RFB = mod.default;
+  } catch (err) {
+    setStatus("error");
+    setErrorMsg("Gagal load library noVNC: " + err.message);
+    return;
+  }
+
+  const url = `${wsOrigin}/websockify?host=${encodeURIComponent(host)}&port=${encodeURIComponent(port)}`;
+
+  let rfb;
+  try {
+    rfb = new RFB(screenRef.current, url, { credentials: { password } });
+  } catch (err) {
+    setStatus("error");
+    setErrorMsg(err.message);
+    return;
+  }
+
+  rfb.scaleViewport = true;
+  rfb.resizeSession = true;
+
+  rfb.addEventListener("connect", () => setStatus("connected"));
+  rfb.addEventListener("disconnect", (e) => {
+    const clean = e.detail && e.detail.clean;
+    setStatus(clean ? "disconnected" : "error");
+    if (!clean) setErrorMsg("Koneksi VNC terputus tidak wajar.");
+    rfbRef.current = null;
+  });
+  rfb.addEventListener("credentialsrequired", () => {
+    rfb.sendCredentials({ password });
+  });
+  rfb.addEventListener("securityfailure", (e) => {
+    const reason = e.detail && e.detail.reason ? e.detail.reason : "password salah / tidak cocok";
+    setErrorMsg(`Autentikasi gagal: ${reason}`);
+    setStatus("error");
+  });
+
+  rfbRef.current = rfb;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [host, port, password, wsOrigin]);
 
   // ── CONNECT ──────────────────────────────────────────────────
   const connect = useCallback(() => {
