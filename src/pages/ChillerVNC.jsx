@@ -253,7 +253,7 @@ function ChillerVNC({ apiBase }) {
   width="100%"
   maxWidth="1280px"
   mx="auto"
-  sx={{ paddingBottom: "40%" }}  // 75% = rasio 4:3. Buat 16:9 pakai "56.25%"
+  sx={{ paddingBottom: "42%" }}  // 75% = rasio 4:3. Buat 16:9 pakai "56.25%"
   bg="black"
   borderRadius="md"
   overflow="hidden"
