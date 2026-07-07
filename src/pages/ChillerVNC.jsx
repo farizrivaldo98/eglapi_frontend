@@ -250,10 +250,11 @@ function ChillerVNC({ apiBase }) {
               kalau nggak layar remote ke-resize jadi 0 dan hasilnya blank walau status "connected". */}
       <Box
   position="relative"
+  display="flex"
   width="100%"
   maxWidth="1280px"
   mx="auto"
-  aspectRatio={16 / 9}
+  aspectRatio={4 / 3}
   bg="black"
   borderRadius="md"
   overflow="hidden"
