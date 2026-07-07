@@ -18,6 +18,7 @@ import {
 } from "@chakra-ui/react";
 import CanvasJSReact from "../canvasjs.react";
 import axios from "axios";
+import ChillerVNC from "./ChillerVNC";
 var CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
 // ────────────────────────────────────────────────────────────
@@ -794,6 +795,7 @@ function ChillerRealtime({ channels, metrics, apiBase, isDarkMode }) {
     <>
       {renderRealtimeTable()}
       {renderRealtimeAnalysis()}
+      <ChillerVNC apiBase={apiBase} />
     </>
   );
 }
