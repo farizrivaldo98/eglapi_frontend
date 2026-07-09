@@ -212,13 +212,13 @@ export default function Scadamonitor() {
         ) : null}
         <Button onClick={connectWS} size="sm" colorScheme="blue">Reconnect WS</Button>
         <div className="flex items-center gap-2">
-          
-          <Text fontSize="sm" fontWeight="semibold">REALTIME STATUS: <span className="relative flex h-2.5 w-2.5">
+          <span className="relative flex h-2.5 w-2.5">
             {status !== "down" && (
               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${STATUS_DOT_COLOR[status]}`}></span>
             )}
             <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${STATUS_DOT_COLOR[status]}`}></span>
-          </span>  {status.toUpperCase()}</Text>
+          </span>
+          <Text fontSize="sm" fontWeight="semibold">REALTIME STATUS: {status.toUpperCase()}</Text>
   
         </div>
       </div>
