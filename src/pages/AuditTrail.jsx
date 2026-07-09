@@ -18,6 +18,8 @@ const ACTION_CFG = {
   ADMIN_EDIT_USER:   { colorScheme: "orange", label: "Edit User"},
   ADMIN_DELETE_USER: { colorScheme: "red",    label: "Hapus User" },
   SCADA_EDIT_LIMIT: { colorScheme: "putple",    label: "Edit Limit" },
+  VIEW_CHILLER: { colorScheme: "green",    label: "View Chiller" },
+
 };
 
 const ROWS_PER_PAGE = 20;
@@ -264,6 +266,8 @@ export default function AuditTrail() {
               <option value="ADMIN_EDIT_USER"> Edit User</option>
               <option value="ADMIN_DELETE_USER"> Hapus User</option>
               <option value="SCADA_EDIT_LIMIT"> Edit Limit</option>
+              <option value="VIEW_CHILLER"> View Chiller</option>
+
             </Select>
           </div>
 
