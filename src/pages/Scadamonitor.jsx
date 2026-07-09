@@ -216,12 +216,10 @@ export default function Scadamonitor() {
             {status !== "down" && (
               <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${STATUS_DOT_COLOR[status]}`}></span>
             )}
-            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${STATUS_DOT_COLOR[status]}`}></span>
+              
           </span>
-          <Text fontSize="sm" fontWeight="semibold">REALTIME STATUS: {status.toUpperCase()}</Text>
-          {elapsedSec !== null && (
-            <Text fontSize="xs" color="gray.400">(update {formatElapsed(elapsedSec)})</Text>
-          )}
+          <Text fontSize="sm" fontWeight="semibold">REALTIME STATUS: <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${STATUS_DOT_COLOR[status]}`}></span> {status.toUpperCase()}</Text>
+          
         </div>
       </div>
 
