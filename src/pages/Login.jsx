@@ -103,7 +103,7 @@ function Login() {
       className="text-sm font-medium text-green-600 hover:text-green-500 transition"
     >
       EMS realtime
-    </a>
+    </a>  
             <a
               href="register"
                  onClick={(e) => {
