@@ -49,7 +49,7 @@ const AHU_LIST = [
 ];
 
 const DEFAULT_WS_URL = "ws://10.163.0.66:1880/ws/scada"; 
-const STATUS_COLOR = { live: "green", connecting: "orange", down: "red" };
+const STATUS_DOT_COLOR = { live: "bg-green-500", connecting: "bg-orange-500", down: "bg-red-500" };
 
 export default function Scadamonitor() {
   const [data, setData] = useState({});
@@ -64,6 +64,8 @@ export default function Scadamonitor() {
   const [editTimer, setEditTimer] = useState("");
   
   const [saving, setSaving] = useState(false); // State untuk loading button
+  const [lastUpdate, setLastUpdate] = useState(null); // Timestamp data terakhir masuk dari WS
+  const [now, setNow] = useState(Date.now()); // Detak tiap 1 detik buat hitung "X detik lalu"
   const [selectedAhu, setSelectedAhu] = useState("AHU 2.03");
   // Status AHU di-hardcode dulu, nanti tinggal diganti ambil dari data WS
   // (misal: data["Status_AHU203"]) mengikuti pola tag yang lain di file ini.
@@ -80,7 +82,10 @@ export default function Scadamonitor() {
     ws.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
-        if (payload.data) setData((prev) => ({ ...prev, ...payload.data }));
+        if (payload.data) {
+          setData((prev) => ({ ...prev, ...payload.data }));
+          setLastUpdate(Date.now());
+        }
       } catch (e) {
         console.error("WS Parse Error:", e);
       }
@@ -91,6 +96,12 @@ export default function Scadamonitor() {
   useEffect(() => {
     connectWS();
     return () => wsRef.current?.close();
+  }, []);
+
+  // Jam interval buat update tampilan "X detik lalu" tiap 1 detik
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -172,6 +183,12 @@ export default function Scadamonitor() {
     onClose();
   };
 
+  const elapsedSec = lastUpdate ? Math.floor((now - lastUpdate) / 1000) : null;
+  const formatElapsed = (sec) => {
+    if (sec < 60) return `${sec} detik lalu`;
+    return `${Math.floor(sec / 60)} menit lalu`;
+  };
+
   const borderColor = useColorModeValue("gray.400", "gray.600");
   const tdStyles = { borderWidth: "2px", borderColor: borderColor, textAlign: "center", transition: "0.2s ease" };
 
@@ -194,7 +211,18 @@ export default function Scadamonitor() {
           </>
         ) : null}
         <Button onClick={connectWS} size="sm" colorScheme="blue">Reconnect WS</Button>
-        <Badge colorScheme={STATUS_COLOR[status]}>REALTIME STATUS: {status.toUpperCase()}</Badge>
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5">
+            {status !== "down" && (
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${STATUS_DOT_COLOR[status]}`}></span>
+            )}
+            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${STATUS_DOT_COLOR[status]}`}></span>
+          </span>
+          <Text fontSize="sm" fontWeight="semibold">REALTIME STATUS: {status.toUpperCase()}</Text>
+          {elapsedSec !== null && (
+            <Text fontSize="xs" color="gray.400">(update {formatElapsed(elapsedSec)})</Text>
+          )}
+        </div>
       </div>
 
       <div className="mx-6 mb-4 flex flex-wrap gap-3 items-center bg-card rounded-md shadow-lg p-3">
