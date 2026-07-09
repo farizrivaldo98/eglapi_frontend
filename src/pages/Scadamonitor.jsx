@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import {
+import {Text,
   Table, Thead, Tbody, Tr, Th, Td,
   TableContainer, Badge, Stack, Button, Input, Select,
   Modal, ModalOverlay, ModalContent, ModalHeader, 
