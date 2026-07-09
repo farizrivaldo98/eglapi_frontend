@@ -218,7 +218,7 @@ export default function Scadamonitor() {
             )}
             <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${STATUS_DOT_COLOR[status]}`}></span>
           </span>
-          <Text fontSize="sm" fontWeight="semibold">REALTIME STATUS: {status.toUpperCase()}</Text>
+          <Text fontSize="sm" fontWeight="semibold">{status.toUpperCase()}</Text>
   
         </div>
       </div>
