@@ -211,9 +211,12 @@ export default function Scadamonitor() {
             </option>
           ))}
         </Select>
-        <Badge colorScheme={ahuStatus === "Running" ? "green" : "gray"}>
-          {selectedAhu} STATUS: {ahuStatus.toUpperCase()}
-        </Badge>
+        <Text>
+  {selectedAhu} STATUS:{" "}
+  <Badge colorScheme={ahuStatus === "Running" ? "green" : "gray"}>
+    {ahuStatus.toUpperCase()}
+  </Badge>
+</Text>
       </div>
 
       <div className="mx-6 mb-4 bg-card rounded-md shadow-lg p-2">
