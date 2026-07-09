@@ -194,7 +194,7 @@ export default function Scadamonitor() {
           </>
         ) : null}
         <Button onClick={connectWS} size="sm" colorScheme="blue">Reconnect WS</Button>
-        <Badge colorScheme={STATUS_COLOR[status]}>STATUS: {status.toUpperCase()}</Badge>
+        <Badge colorScheme={STATUS_COLOR[status]}>REALTIME STATUS: {status.toUpperCase()}</Badge>
       </div>
 
       <div className="mx-6 mb-4 flex flex-wrap gap-3 items-center bg-card rounded-md shadow-lg p-3">
