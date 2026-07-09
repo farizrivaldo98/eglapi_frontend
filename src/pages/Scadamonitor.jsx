@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Table, Thead, Tbody, Tr, Th, Td,
-  TableContainer, Badge, Stack, Button, Input,
+  TableContainer, Badge, Stack, Button, Input, Select,
   Modal, ModalOverlay, ModalContent, ModalHeader, 
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure,
   useColorModeValue, useToast
@@ -31,6 +31,23 @@ const STATIONS = [
   { station: "CoatingSP1",    vars: { Tx: "Tx_CoatingSP1",    Rx: "Rx_CoatingSP1",    Px: "Px_CoatingSP1" } },
 ];
 
+// Daftar AHU yang bisa dipilih di dropdown.
+// Baru AHU 2.03 yang sudah jalan (available: true), sisanya di-disable dulu
+// sampai sumber datanya (WS/PLC) untuk masing-masing AHU sudah siap.
+const AHU_LIST = [
+  { code: "AHU 2.03", available: true },
+  { code: "AHU 2.04", available: false },
+  { code: "AHU 2.05", available: false },
+  { code: "AHU 2.06", available: false },
+  { code: "AHU 2.07", available: false },
+  { code: "AHU 2.08", available: false },
+  { code: "AHU 2.09", available: false },
+  { code: "AHU 2.10", available: false },
+  { code: "AHU 2.11", available: false },
+  { code: "AHU 2.12", available: false },
+  { code: "AHU 2.13", available: false },
+];
+
 const DEFAULT_WS_URL = "ws://10.163.0.66:1880/ws/scada"; 
 const STATUS_COLOR = { live: "green", connecting: "orange", down: "red" };
 
@@ -47,6 +64,10 @@ export default function Scadamonitor() {
   const [editTimer, setEditTimer] = useState("");
   
   const [saving, setSaving] = useState(false); // State untuk loading button
+  const [selectedAhu, setSelectedAhu] = useState("AHU 2.03");
+  // Status AHU di-hardcode dulu, nanti tinggal diganti ambil dari data WS
+  // (misal: data["Status_AHU203"]) mengikuti pola tag yang lain di file ini.
+  const ahuStatus = "Running";
   const userGlobal = useSelector((state) => state.user.user);
 
   const connectWS = () => {
@@ -174,6 +195,25 @@ export default function Scadamonitor() {
         ) : null}
         <Button onClick={connectWS} size="sm" colorScheme="blue">Reconnect WS</Button>
         <Badge colorScheme={STATUS_COLOR[status]}>STATUS: {status.toUpperCase()}</Badge>
+      </div>
+
+      <div className="mx-6 mb-4 flex flex-wrap gap-3 items-center bg-card rounded-md shadow-lg p-3">
+        <span className="font-semibold text-gray-500">AHU:</span>
+        <Select
+          size="sm"
+          width="180px"
+          value={selectedAhu}
+          onChange={(e) => setSelectedAhu(e.target.value)}
+        >
+          {AHU_LIST.map((ahu) => (
+            <option key={ahu.code} value={ahu.code} disabled={!ahu.available}>
+              {ahu.code}{!ahu.available ? " (Belum Tersedia)" : ""}
+            </option>
+          ))}
+        </Select>
+        <Badge colorScheme={ahuStatus === "Running" ? "green" : "gray"}>
+          {selectedAhu} STATUS: {ahuStatus.toUpperCase()}
+        </Badge>
       </div>
 
       <div className="mx-6 mb-4 bg-card rounded-md shadow-lg p-2">
