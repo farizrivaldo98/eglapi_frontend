@@ -146,10 +146,14 @@ export default function Scadamonitor() {
   }, [popupData]);
 
   // Saat popup buzzer terbuka, isi switch dengan nilai saat ini
+  // useEffect(() => {
+  //   if (!buzzerPopup) return;
+  //   setEditBuzzerOn(buzzerPopup.switchOn === true);
+  // }, [buzzerPopup]);
   useEffect(() => {
-    if (!buzzerPopup) return;
-    setEditBuzzerOn(buzzerPopup.switchOn === true);
-  }, [buzzerPopup]);
+  if (!buzzerPopup) return;
+  setEditBuzzerOn(!buzzerPopup.switchOn);
+}, [buzzerPopup]);
 
   // ──────────────── Helper alarm ─────────────────────────────────
   const isAlarm = (room, type, val) => {
