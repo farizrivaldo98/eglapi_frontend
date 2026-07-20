@@ -1,95 +1,120 @@
 import { useState, useEffect, useRef } from "react";
-import {Text,
-  Table, Thead, Tbody, Tr, Th, Td,
+import {
+  Text, Table, Thead, Tbody, Tr, Th, Td,
   TableContainer, Badge, Stack, Button, Input, Select,
-  Modal, ModalOverlay, ModalContent, ModalHeader, 
-  ModalCloseButton, ModalBody, ModalFooter, useDisclosure,
-  useColorModeValue, useToast
+  Modal, ModalOverlay, ModalContent, ModalHeader,
+  ModalCloseButton, ModalBody, ModalFooter,
+  useDisclosure, useColorModeValue, useToast,
 } from "@chakra-ui/react";
 import { useSelector } from "react-redux";
-import { logAuditAction } from "../features/part/userSlice"; // Import fungsi log audit
-import { useNavigate, useLocation } from "react-router-dom";
+import { logAuditAction } from "../features/part/userSlice";
+import { useNavigate } from "react-router-dom";
 
-const STATIONS = [
-  { station: "Stripping3",    vars: { Tx: "Tx_Stripping3",    Rx: "Rx_Stripping3",    Px: "Px_Stripping3" } },
-  { station: "Blistering2",   vars: { Tx: "Tx_Blistering2",   Rx: "Rx_Blistering2",   Px: "Px_Blistering2" } },
-  { station: "Stripping2",    vars: { Tx: "Tx_Stripping2",    Rx: "Rx_Stripping2",    Px: "Px_Stripping2" } },
-  { station: "Tableting2",    vars: { Tx: "Tx_Tableting2",    Rx: "Rx_Tableting2",    Px: "Px_Tableting2" } },
-  { station: "Spare4",        vars: { Tx: "Tx_Spare4",        Rx: "Rx_Spare4",        Px: "Px_Spare4" } },
-  { station: "ChangeP3",      vars: { Tx: "Tx_ChangeP3",      Rx: "Rx_ChangeP3",      Px: "Px_ChangeP3" } },
-  { station: "StaggingF1",    vars: { Tx: "Tx_StaggingF1",    Rx: "Rx_StaggingF1",    Px: "Px_StaggingF1" } },
-  { station: "StaggingWIP3",  vars: { Tx: "Tx_StaggingWIP3",  Rx: "Rx_StaggingWIP3",  Px: "Px_StaggingWIP3" } },
-  { station: "Sorting2",      vars: { Tx: "Tx_Sorting2",      Rx: "Rx_Sorting2",      Px: "Px_Sorting2" } },
-  { station: "Sorting1",      vars: { Tx: "Tx_Sorting1",      Rx: "Rx_Sorting1",      Px: "Px_Sorting1" } },
-  { station: "StaggingWIP2",  vars: { Tx: "Tx_StaggingWIP2",  Rx: "Rx_StaggingWIP2",  Px: "Px_StaggingWIP2" } },
-  { station: "Ipc3",          vars: { Tx: "Tx_Ipc3",          Rx: "Rx_Ipc3",          Px: "Px_Ipc3" } },
-  { station: "AirLock12",     vars: { Tx: "Tx_AirLock12",     Rx: "Rx_AirLock12",     Px: "Px_AirLock12" } },
-  { station: "Airlock10",     vars: { Tx: "Tx_Airlock10",     Rx: "Rx_Airlock10",     Px: "Px_Airlock10" } },
-  { station: "AirLock15",     vars: { Tx: "Tx_AirLock15",     Rx: "Rx_AirLock15",     Px: "Px_AirLock15" } },
-  { station: "Spare5",        vars: { Tx: "Tx_Spare5",        Rx: "Rx_Spare5",        Px: "Px_Spare5" } },
-  { station: "Coating2",      vars: { Tx: "Tx_Coating2",      Rx: "Rx_Coating2",      Px: "Px_Coating2" } },
-  { station: "CoatingSP1",    vars: { Tx: "Tx_CoatingSP1",    Rx: "Rx_CoatingSP1",    Px: "Px_CoatingSP1" } },
-];
+// ─────────────────────────────────────────────────────────────────
+// Alamat WebSocket Node-RED
+// ─────────────────────────────────────────────────────────────────
+const DEFAULT_WS_URL = "ws://10.163.0.66:1880/ws/scada";
+const STATUS_DOT_COLOR = {
+  live:       "bg-green-500",
+  connecting: "bg-orange-500",
+  down:       "bg-red-500",
+};
 
-// Daftar AHU yang bisa dipilih di dropdown.
-// Baru AHU 2.03 yang sudah jalan (available: true), sisanya di-disable dulu
-// sampai sumber datanya (WS/PLC) untuk masing-masing AHU sudah siap.
-const AHU_LIST = [
-  { code: "AHU 2.03", available: true },
-  { code: "AHU 2.04", available: false },
-  { code: "AHU 2.05", available: false },
-  { code: "AHU 2.06", available: false },
-  { code: "AHU 2.07", available: false },
-  { code: "AHU 2.08", available: false },
-  { code: "AHU 2.09", available: false },
-  { code: "AHU 2.10", available: false },
-  { code: "AHU 2.11", available: false },
-  { code: "AHU 2.12", available: false },
-  { code: "AHU 2.13", available: false },
-];
+// ─────────────────────────────────────────────────────────────────
+// Derive semua nama tag PLC dari nama ruangan.
+// Konvensi wajib sama dengan vartable di S7 Endpoint Node-RED:
+//   DB3 : Tx_<Room>  Rx_<Room>  Px_<Room>
+//   DB1 : Temp_<Room>_SP_L/H   Rh_<Room>_SP_L/H   Dp_<Room>_SP_L/H
+//          Min_Tx_<Room>  Min_Rx_<Room>  Min_Px_<Room>
+//          Buzzer_<Room>  (bit X.x)
+// ─────────────────────────────────────────────────────────────────
+const getTagNames = (room) => ({
+  Tx:        `Tx_${room}`,
+  Rx:        `Rx_${room}`,
+  Px:        `Px_${room}`,
+  Buzzer:    `Buzzer_${room}`,
+  Temp_SP_L: `Temp_${room}_SP_L`,
+  Temp_SP_H: `Temp_${room}_SP_H`,
+  Rh_SP_L:   `Rh_${room}_SP_L`,
+  Rh_SP_H:   `Rh_${room}_SP_H`,
+  Dp_SP_L:   `Dp_${room}_SP_L`,
+  Dp_SP_H:   `Dp_${room}_SP_H`,
+  Timer_Tx:  `Min_Tx_${room}`,
+  Timer_Rx:  `Min_Rx_${room}`,
+  Timer_Px:  `Min_Px_${room}`,
+});
 
-const DEFAULT_WS_URL = "ws://10.163.0.66:1880/ws/scada"; 
-const STATUS_DOT_COLOR = { live: "bg-green-500", connecting: "bg-orange-500", down: "bg-red-500" };
+// Tx → "Temp" | Rx → "Rh" | Px → "Dp"
+const getTypeLabel = (type) =>
+  type === "Tx" ? "Temp" : type === "Rx" ? "Rh" : "Dp";
 
+// ─────────────────────────────────────────────────────────────────
 export default function Scadamonitor() {
-  const [data, setData] = useState({});
-  const [status, setStatus] = useState("down");
-  const wsRef = useRef(null);
-  const toast = useToast();
-  const navigate   = useNavigate();
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [popupData, setPopupData] = useState(null);
-  const [editSpL, setEditSpL] = useState("");
-  const [editSpH, setEditSpH] = useState("");
-  const [editTimer, setEditTimer] = useState("");
-  
-  const [saving, setSaving] = useState(false); // State untuk loading button
-  const [lastUpdate, setLastUpdate] = useState(null); // Timestamp data terakhir masuk dari WS
-  const [now, setNow] = useState(Date.now()); // Detak tiap 1 detik buat hitung "X detik lalu"
-  const [selectedAhu, setSelectedAhu] = useState("AHU 2.03");
-  // Status AHU di-hardcode dulu, nanti tinggal diganti ambil dari data WS
-  // (misal: data["Status_AHU203"]) mengikuti pola tag yang lain di file ini.
-  const ahuStatus = "Running";
+  // PLC realtime data (flat key-value dari Node-RED)
+  const [data, setData]               = useState({});
+  // Konfigurasi AHU [{ahu, rooms}] — dikirim dari Node-RED, bukan hardcode
+  const [ahuConfig, setAhuConfig]     = useState([]);
+  const [selectedAhu, setSelectedAhu] = useState(null);
+
+  const [status, setStatus]           = useState("down");
+  const [lastUpdate, setLastUpdate]   = useState(null);
+  const [now, setNow]                 = useState(Date.now());
+
+  // Edit limit modal
+  const [popupData, setPopupData]     = useState(null);
+  const [editSpL, setEditSpL]         = useState("");
+  const [editSpH, setEditSpH]         = useState("");
+  const [editTimer, setEditTimer]     = useState("");
+  const [saving, setSaving]           = useState(false);
+
+  const wsRef    = useRef(null);
+  const toast    = useToast();
+  const navigate = useNavigate();
+  const { isOpen, onOpen, onClose }   = useDisclosure();
   const userGlobal = useSelector((state) => state.user.user);
 
+  // Ruangan yang tampil = rooms dari AHU yang sedang dipilih
+  const currentAhu   = ahuConfig.find((a) => a.ahu === selectedAhu);
+  const currentRooms = currentAhu?.rooms ?? [];
+
+  // Bisa write jika level >= 3
+  const canWrite = userGlobal?.level != null && userGlobal.level >= 3;
+
+  // ──────────────── WebSocket ────────────────────────────────────
   const connectWS = () => {
     setStatus("connecting");
-    if (wsRef.current) wsRef.current.close();
+    wsRef.current?.close();
     const ws = new WebSocket(DEFAULT_WS_URL);
-    ws.onopen = () => setStatus("live");
+
+    ws.onopen  = () => setStatus("live");
     ws.onclose = () => setStatus("down");
     ws.onerror = () => setStatus("down");
+
     ws.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
+
+        // 1. Update data PLC realtime
         if (payload.data) {
           setData((prev) => ({ ...prev, ...payload.data }));
           setLastUpdate(Date.now());
+        }
+
+        // 2. Update konfigurasi AHU dari Node-RED (auto-generate tabel)
+        if (Array.isArray(payload.ahuConfig) && payload.ahuConfig.length > 0) {
+          setAhuConfig((prev) => {
+            // Hanya update jika config benar-benar berubah
+            if (JSON.stringify(prev) === JSON.stringify(payload.ahuConfig)) return prev;
+            return payload.ahuConfig;
+          });
+          // Default pilih AHU pertama saat pertama kali terima config
+          setSelectedAhu((prev) => prev ?? payload.ahuConfig[0]?.ahu ?? null);
         }
       } catch (e) {
         console.error("WS Parse Error:", e);
       }
     };
+
     wsRef.current = ws;
   };
 
@@ -98,234 +123,318 @@ export default function Scadamonitor() {
     return () => wsRef.current?.close();
   }, []);
 
-  // Jam interval buat update tampilan "X detik lalu" tiap 1 detik
+  // Tick tiap 1 detik untuk "X detik lalu"
   useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
   }, []);
 
+  // Saat popup terbuka, isi field dengan nilai saat ini
   useEffect(() => {
-    if (popupData) {
-      setEditSpL(popupData.spL !== 'N/A' ? popupData.spL : "");
-      setEditSpH(popupData.spH !== 'N/A' ? popupData.spH : "");
-      setEditTimer(popupData.timer !== 'N/A' ? popupData.timer : "");
-    }
+    if (!popupData) return;
+    setEditSpL(popupData.spL  != null ? String(popupData.spL)   : "");
+    setEditSpH(popupData.spH  != null ? String(popupData.spH)   : "");
+    setEditTimer(popupData.timer != null ? String(popupData.timer) : "");
   }, [popupData]);
 
-  const handleTagClick = (station, type, val) => {
-    const typeName = type === 'Tx' ? 'Temp' : type === 'Rx' ? 'Rh' : 'Dp';
+  // ──────────────── Helper alarm ─────────────────────────────────
+  const isAlarm = (room, type, val) => {
+    if (val == null) return false;
+    const t   = getTagNames(room);
+    const lbl = getTypeLabel(type);
+    const spL = data[t[`${lbl}_SP_L`]];
+    const spH = data[t[`${lbl}_SP_H`]];
+    return (spL !== undefined && val < spL) ||
+           (spH !== undefined && val > spH);
+  };
+
+  // ──────────────── Klik sel tabel → buka modal ─────────────────
+  const handleTagClick = (room, type, val) => {
+    const t   = getTagNames(room);
+    const lbl = getTypeLabel(type);
     setPopupData({
-      station,
-      type,
-      val,
-      spL: data[`${typeName}_${station}_SP_L`],
-      spH: data[`${typeName}_${station}_SP_H`],
-      timer: data[`Min_${type}_${station}`]
+      room, type, val,
+      spL:   data[t[`${lbl}_SP_L`]],
+      spH:   data[t[`${lbl}_SP_H`]],
+      timer: data[t[`Timer_${type}`]],
     });
     onOpen();
   };
 
-  const isAlarm = (station, type, val) => {
-    if (val === undefined || val === null) return false;
-    const typeName = type === 'Tx' ? 'Temp' : type === 'Rx' ? 'Rh' : 'Dp';
-    const spL = data[`${typeName}_${station}_SP_L`];
-    const spH = data[`${typeName}_${station}_SP_H`];
-    
-    if (spL !== undefined && val < spL) return true;
-    if (spH !== undefined && val > spH) return true;
-    return false;
-  };
-
-  // Fungsi untuk mengirim data dan menyimpan log
+  // ──────────────── Simpan limit ke PLC ─────────────────────────
   const handleSaveToPlc = async () => {
-    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+    if (wsRef.current?.readyState !== WebSocket.OPEN) {
       toast({ title: "Koneksi WebSocket terputus", status: "error", duration: 3000 });
       return;
     }
-
     setSaving(true);
-    const { station, type } = popupData;
-    const typeName = type === 'Tx' ? 'Temp' : type === 'Rx' ? 'Rh' : 'Dp';
-    let dataUpdated = false;
 
-    // Helper untuk mengecek perubahan, mengirim WS, dan mencatat log
-    const processUpdate = async (tag, oldVal, newVal, label) => {
-      if (newVal !== "" && Number(newVal) !== oldVal) {
-        // 1. Tulis ke PLC via WebSocket
-        wsRef.current.send(JSON.stringify({ cmd: "write", tag: tag, value: Number(newVal) }));
-        dataUpdated = true;
+    const { room, type } = popupData;
+    const t   = getTagNames(room);
+    const lbl = getTypeLabel(type);
+    let updated = false;
 
-        // 2. Catat aktivitas log ke database
-        try {
-          await logAuditAction("SCADA_EDIT_LIMIT", {
-            target_station: station,
-            parameter: label,
-            old_value: oldVal,
-            new_value: Number(newVal),
-            user_name: userGlobal.name // Menambahkan referensi user jika API log mendukungnya
-          });
-        } catch (error) {
-          console.error(`Gagal menyimpan log untuk ${label}:`, error);
-        }
+    const sendWrite = async (tagKey, oldVal, newVal, label) => {
+      if (newVal === "" || Number(newVal) === oldVal) return;
+      // Kirim write command ke Node-RED → PLC
+      wsRef.current.send(
+        JSON.stringify({ cmd: "write", tag: t[tagKey], value: Number(newVal) })
+      );
+      updated = true;
+      // Catat audit log
+      try {
+        await logAuditAction("SCADA_EDIT_LIMIT", {
+          ahu:           selectedAhu,
+          target_station: room,
+          parameter:     label,
+          old_value:     oldVal,
+          new_value:     Number(newVal),
+          user_name:     userGlobal?.name,
+        });
+      } catch (err) {
+        console.error(`Gagal log ${label}:`, err);
       }
     };
 
-    // Eksekusi secara berurutan untuk setiap limit
-    await processUpdate(`${typeName}_${station}_SP_L`, popupData.spL, editSpL, `Low Limit (${typeName})`);
-    await processUpdate(`${typeName}_${station}_SP_H`, popupData.spH, editSpH, `High Limit (${typeName})`);
-    await processUpdate(`Min_${type}_${station}`, popupData.timer, editTimer, `Timer Limit (${typeName})`);
+    await sendWrite(`${lbl}_SP_L`,   popupData.spL,   editSpL,   `Low Limit (${lbl})`);
+    await sendWrite(`${lbl}_SP_H`,   popupData.spH,   editSpH,   `High Limit (${lbl})`);
+    await sendWrite(`Timer_${type}`, popupData.timer, editTimer, `Timer (${lbl})`);
 
-    if (dataUpdated) {
+    if (updated) {
       toast({ title: "Perintah Write terkirim & Log tersimpan", status: "success", duration: 3000 });
     }
-    
     setSaving(false);
     onClose();
   };
 
+  // ──────────────── Format waktu ─────────────────────────────────
   const elapsedSec = lastUpdate ? Math.floor((now - lastUpdate) / 1000) : null;
-  const formatElapsed = (sec) => {
-    if (sec < 60) return `${sec} detik lalu`;
-    return `${Math.floor(sec / 60)} menit lalu`;
-  };
+  const fmtElapsed = (s) =>
+    s < 60 ? `${s} detik lalu` : `${Math.floor(s / 60)} menit lalu`;
 
+  // ──────────────── Style ────────────────────────────────────────
   const borderColor = useColorModeValue("gray.400", "gray.600");
-  const tdStyles = { borderWidth: "2px", borderColor: borderColor, textAlign: "center", transition: "0.2s ease" };
+  const tdS = { borderWidth: "2px", borderColor, textAlign: "center", transition: "0.2s ease" };
 
+  // ══════════════════════════════════════════════════════════════
+  // RENDER
+  // ══════════════════════════════════════════════════════════════
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <style>{`
-        @keyframes alertBlink { 0%, 100% { background-color: transparent; } 50% { background-color: #fca5a5; color: #7f1d1d; } }
+        @keyframes alertBlink {
+          0%, 100% { background-color: transparent; }
+          50%       { background-color: #fca5a5; color: #7f1d1d; }
+        }
         .blinking-alarm { animation: alertBlink 1s infinite ease-in-out; font-weight: bold; cursor: pointer; }
-        .normal-cell { cursor: pointer; } .normal-cell:hover { background-color: rgba(0,0,0,0.05); }
+        .normal-cell    { cursor: pointer; }
+        .normal-cell:hover { background-color: rgba(0,0,0,0.05); }
       `}</style>
 
+      {/* ── Top bar ───────────────────────────────────────────── */}
+      <div className="p-4 flex gap-4 items-center flex-wrap">
+        {userGlobal?.level == null && (
+          <Button size="sm" onClick={() => navigate("/")} colorScheme="red">
+            Back
+          </Button>
+        )}
+        <Button onClick={connectWS} size="sm" colorScheme="blue">
+          Reconnect WS
+        </Button>
 
-
-      <div className="p-4 flex gap-4 items-center">
-        {userGlobal.level == null ? (
-          <>
-            <Button onClick={connectWS} size="sm"   onClick={() => navigate("/")} colorScheme="red">
-              Back
-            </Button>
-          </>
-        ) : null}
-        <Button onClick={connectWS} size="sm" colorScheme="blue">Reconnect WS</Button>
+        {/* Status dot */}
         <div className="flex items-center gap-2">
           <span className="relative flex h-2.5 w-2.5">
             {status !== "down" && (
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${STATUS_DOT_COLOR[status]}`}></span>
+              <span
+                className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${STATUS_DOT_COLOR[status]}`}
+              />
             )}
-            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${STATUS_DOT_COLOR[status]}`}></span>
+            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${STATUS_DOT_COLOR[status]}`} />
           </span>
           <Text fontSize="sm" fontWeight="semibold">{status.toUpperCase()}</Text>
-  
         </div>
+
+        {elapsedSec !== null && (
+          <Text fontSize="xs" color="gray.500">
+            Data terakhir: {fmtElapsed(elapsedSec)}
+          </Text>
+        )}
       </div>
 
-      <div className="mx-6 mb-4 flex flex-wrap gap-3 items-center bg-card rounded-md shadow-lg p-3">
-        <span className="font-semibold text-gray-500">AHU:</span>
-        <Select
-          size="sm"
-          width="180px"
-          value={selectedAhu}
-          onChange={(e) => setSelectedAhu(e.target.value)}
-        >
-          {AHU_LIST.map((ahu) => (
-            <option key={ahu.code} value={ahu.code} disabled={!ahu.available}>
-              {ahu.code}{!ahu.available ? " (Belum Tersedia)" : ""}
-            </option>
-          ))}
-        </Select>
-        <Text>
-  {selectedAhu} STATUS:{" "}
-  <Badge colorScheme={ahuStatus === "Running" ? "green" : "gray"}>
-    {ahuStatus.toUpperCase()}
-  </Badge>
-</Text>
-      </div>
+      {/* ── AHU Selector — auto-generate dari Node-RED config ─── */}
+      {ahuConfig.length > 0 ? (
+        <div className="mx-6 mb-4 flex flex-wrap gap-3 items-center bg-card rounded-md shadow-lg p-3">
+          <span className="font-semibold text-gray-500">AHU:</span>
+          <Select
+            size="sm"
+            width="180px"
+            value={selectedAhu ?? ""}
+            onChange={(e) => setSelectedAhu(e.target.value)}
+          >
+            {ahuConfig.map((a) => (
+              <option key={a.ahu} value={a.ahu}>
+                {a.ahu}
+              </option>
+            ))}
+          </Select>
 
-      <div className="mx-6 mb-4 bg-card rounded-md shadow-lg p-2">
-        <TableContainer>
-          <Table variant="simple" size="sm">
-            <Thead>
-              <Tr>
-                <Th sx={tdStyles}>Station</Th>
-                <Th sx={tdStyles}>Tx (Temp)</Th>
-                <Th sx={tdStyles}>Rx (RH)</Th>
-                <Th sx={tdStyles}>Px (DP)</Th>
-                <Th sx={tdStyles}>Buzzer Status</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {STATIONS.map((st) => {
-                const txVal = data[st.vars.Tx];
-                const rxVal = data[st.vars.Rx];
-                const pxVal = data[st.vars.Px];
-                const buzzerActive = data[`Buzzer_${st.station}`] === true;
+          <div className="flex items-center gap-2">
+            <Badge colorScheme="blue">{currentRooms.length} ruangan</Badge>
+            <Text fontSize="sm" fontWeight="medium">{selectedAhu}</Text>
+          </div>
+        </div>
+      ) : (
+        <div className="mx-6 mb-4 p-3 rounded-md border border-yellow-300 bg-yellow-50 text-yellow-700 text-sm">
+          ⏳ Menunggu konfigurasi AHU dari Node-RED…
+          <br />
+          <span className="text-xs opacity-75">
+            Pastikan Node-RED terkoneksi ke PLC dan flow sudah berjalan.
+          </span>
+        </div>
+      )}
 
-                return (
-                  <Tr key={st.station}>
-                    <Td sx={{...tdStyles, textAlign: "left", fontWeight: "bold"}}>{st.station}</Td>
-                    <Td sx={tdStyles} className={isAlarm(st.station, 'Tx', txVal) ? 'blinking-alarm' : 'normal-cell'} onClick={() => handleTagClick(st.station, 'Tx', txVal)}>
-                      {txVal !== undefined ? txVal.toFixed(1) : '-'}
-                    </Td>
-                    <Td sx={tdStyles} className={isAlarm(st.station, 'Rx', rxVal) ? 'blinking-alarm' : 'normal-cell'} onClick={() => handleTagClick(st.station, 'Rx', rxVal)}>
-                      {rxVal !== undefined ? rxVal.toFixed(1) : '-'}
-                    </Td>
-                    <Td sx={tdStyles} className={isAlarm(st.station, 'Px', pxVal) ? 'blinking-alarm' : 'normal-cell'} onClick={() => handleTagClick(st.station, 'Px', pxVal)}>
-                      {pxVal !== undefined ? pxVal.toFixed(1) : '-'}
-                    </Td>
-                    <Td sx={tdStyles}>
-                      {buzzerActive ? <Badge colorScheme="red" className="animate-pulse">🚨 ACTIVE</Badge> : <Badge colorScheme="green">OK</Badge>}
-                    </Td>
-                  </Tr>
-                );
-              })}
-            </Tbody>
-          </Table>
-        </TableContainer>
-      </div>
+      {/* ── Tabel Ruangan — auto-generate dari rooms di config ── */}
+      {currentRooms.length > 0 && (
+        <div className="mx-6 mb-4 bg-card rounded-md shadow-lg p-2">
+          <TableContainer>
+            <Table variant="simple" size="sm">
+              <Thead>
+                <Tr>
+                  <Th sx={tdS}>Ruangan (Station)</Th>
+                  <Th sx={tdS}>Tx · Suhu (°C)</Th>
+                  <Th sx={tdS}>Rx · RH (%)</Th>
+                  <Th sx={tdS}>Px · DP (Pa)</Th>
+                  <Th sx={tdS}>Buzzer</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {currentRooms.map((room) => {
+                  const t       = getTagNames(room);
+                  const txVal   = data[t.Tx];
+                  const rxVal   = data[t.Rx];
+                  const pxVal   = data[t.Px];
+                  const buzzerOn = data[t.Buzzer] === true;
 
+                  const cls = (type, val) =>
+                    isAlarm(room, type, val) ? "blinking-alarm" : "normal-cell";
+
+                  return (
+                    <Tr key={room}>
+                      <Td sx={{ ...tdS, textAlign: "left", fontWeight: "bold" }}>
+                        {room}
+                      </Td>
+
+                      <Td sx={tdS} className={cls("Tx", txVal)}
+                          onClick={() => handleTagClick(room, "Tx", txVal)}>
+                        {txVal != null ? txVal.toFixed(1) : "—"}
+                      </Td>
+
+                      <Td sx={tdS} className={cls("Rx", rxVal)}
+                          onClick={() => handleTagClick(room, "Rx", rxVal)}>
+                        {rxVal != null ? rxVal.toFixed(1) : "—"}
+                      </Td>
+
+                      <Td sx={tdS} className={cls("Px", pxVal)}
+                          onClick={() => handleTagClick(room, "Px", pxVal)}>
+                        {pxVal != null ? pxVal.toFixed(1) : "—"}
+                      </Td>
+
+                      <Td sx={tdS}>
+                        {buzzerOn ? (
+                          <Badge colorScheme="red" className="animate-pulse">
+                            🚨 ACTIVE
+                          </Badge>
+                        ) : (
+                          <Badge colorScheme="green">OK</Badge>
+                        )}
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </Tbody>
+            </Table>
+          </TableContainer>
+        </div>
+      )}
+
+      {/* ── Modal Edit Limit ────────────────────────────────────── */}
       <Modal isOpen={isOpen} onClose={onClose} isCentered>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader borderBottomWidth="1px">Set Limit - {popupData?.station}</ModalHeader>
+          <ModalHeader borderBottomWidth="1px">
+            Set Limit — {popupData?.room} [{popupData?.type}]
+          </ModalHeader>
           <ModalCloseButton />
+
           <ModalBody py={4}>
-            <Stack spacing={4}>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="font-semibold text-gray-500">Parameter</span>
-                <span className="font-bold">{popupData?.type}</span>
-              </div>
+            <Stack spacing={3}>
+              {/* Info rows */}
+              {[
+                ["AHU",       selectedAhu],
+                ["Ruangan",   popupData?.room],
+                ["Parameter", popupData?.type],
+              ].map(([lbl, val]) => (
+                <div key={lbl} className="flex justify-between items-center border-b pb-2">
+                  <span className="font-semibold text-gray-500">{lbl}</span>
+                  <span className="font-bold">{val}</span>
+                </div>
+              ))}
+
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="font-semibold text-gray-500">Current Value</span>
                 <span className="font-bold text-blue-600">
-                  {typeof popupData?.val === 'number' ? popupData.val.toFixed(1) : popupData?.val}
+                  {typeof popupData?.val === "number"
+                    ? popupData.val.toFixed(1)
+                    : (popupData?.val ?? "—")}
                 </span>
               </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="font-semibold text-gray-500">High Limit (SP_H)</span>
-                <Input size="sm" width="120px" type="number" step="0.1" value={editSpH}  isDisabled={userGlobal.level < 3 ||userGlobal.level == null } onChange={(e) => setEditSpH(e.target.value)} />
-              </div>
-              <div className="flex justify-between items-center border-b pb-2">
-                <span className="font-semibold text-gray-500">Low Limit (SP_L)</span>
-                <Input size="sm" width="120px" type="number" step="0.1" value={editSpL} isDisabled={userGlobal.level < 3 ||userGlobal.level == null } onChange={(e) => setEditSpL(e.target.value)} />
-              </div>
+
+              {/* High / Low limit */}
+              {[
+                ["High Limit (SP_H)", editSpH, setEditSpH],
+                ["Low Limit (SP_L)",  editSpL, setEditSpL],
+              ].map(([lbl, val, setter]) => (
+                <div key={lbl} className="flex justify-between items-center border-b pb-2">
+                  <span className="font-semibold text-gray-500">{lbl}</span>
+                  <Input
+                    size="sm" width="120px" type="number" step="0.1"
+                    value={val}
+                    isDisabled={!canWrite}
+                    onChange={(e) => setter(e.target.value)}
+                  />
+                </div>
+              ))}
+
+              {/* Timer */}
               <div className="flex justify-between items-center pb-2">
-                <span className="font-semibold text-gray-500">Timer Limit</span>
-                <Input size="sm" width="120px" type="number" value={editTimer} isDisabled={userGlobal.level < 3 ||userGlobal.level == null } onChange={(e) => setEditTimer(e.target.value)} />
+                <span className="font-semibold text-gray-500">Timer Limit (menit)</span>
+                <Input
+                  size="sm" width="120px" type="number"
+                  value={editTimer}
+                  isDisabled={!canWrite}
+                  onChange={(e) => setEditTimer(e.target.value)}
+                />
               </div>
+
+              {!canWrite && (
+                <Text fontSize="xs" color="red.400" textAlign="center">
+                  ⚠️ Level akses tidak mencukupi untuk edit limit (butuh Level 3+)
+                </Text>
+              )}
             </Stack>
           </ModalBody>
+
           <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={onClose} isDisabled={saving}>Cancel</Button>
-            <Button 
-              onClick={handleSaveToPlc} 
+            <Button variant="ghost" mr={3} onClick={onClose} isDisabled={saving}>
+              Cancel
+            </Button>
+            <Button
               colorScheme="blue"
-              isDisabled={userGlobal.level < 3 ||userGlobal.level == null }
+              onClick={handleSaveToPlc}
+              isDisabled={!canWrite}
               isLoading={saving}
-              loadingText="Saving..."
+              loadingText="Saving…"
             >
               Save to PLC
             </Button>
