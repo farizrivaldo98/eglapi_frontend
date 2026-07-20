@@ -146,14 +146,10 @@ export default function Scadamonitor() {
   }, [popupData]);
 
   // Saat popup buzzer terbuka, isi switch dengan nilai saat ini
-  // useEffect(() => {
-  //   if (!buzzerPopup) return;
-  //   setEditBuzzerOn(buzzerPopup.switchOn === true);
-  // }, [buzzerPopup]);
   useEffect(() => {
-  if (!buzzerPopup) return;
-  setEditBuzzerOn(!buzzerPopup.switchOn);
-}, [buzzerPopup]);
+    if (!buzzerPopup) return;
+    setEditBuzzerOn(buzzerPopup.switchOn === true);
+  }, [buzzerPopup]);
 
   // ──────────────── Helper alarm ─────────────────────────────────
   const isAlarm = (room, type, val) => {
@@ -555,7 +551,7 @@ export default function Scadamonitor() {
                 )}
               </div>
 
-              {/* Switch on/off */}
+              {/* Switch on/off
               <div className="flex justify-between items-center pb-2">
                 <span className="font-semibold text-gray-500">Buzzer Switch</span>
                 <Stack direction="row" align="center" spacing={3}>
@@ -571,6 +567,25 @@ export default function Scadamonitor() {
                     isChecked={editBuzzerOn}
                     isDisabled={!canWrite}
                     onChange={(e) => setEditBuzzerOn(e.target.checked)}
+                  />
+                </Stack>
+              </div> */}
+              {/* Switch on/off */}
+              <div className="flex justify-between items-center pb-2">
+                <span className="font-semibold text-gray-500">Buzzer Switch</span>
+                <Stack direction="row" align="center" spacing={3}>
+                  <Text
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color={!editBuzzerOn ? "green.500" : "gray.500"}
+                  >
+                    {!editBuzzerOn ? "ON" : "OFF"}
+                  </Text>
+                  <Switch
+                    colorScheme="green"
+                    isChecked={!editBuzzerOn}
+                    isDisabled={!canWrite}
+                    onChange={(e) => setEditBuzzerOn(!e.target.checked)}
                   />
                 </Stack>
               </div>
