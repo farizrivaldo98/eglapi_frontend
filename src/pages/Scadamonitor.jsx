@@ -4,7 +4,7 @@ import {
   TableContainer, Badge, Stack, Button, Input, Select,
   Modal, ModalOverlay, ModalContent, ModalHeader,
   ModalCloseButton, ModalBody, ModalFooter,
-  useDisclosure, useColorModeValue, useToast,
+  useDisclosure, useColorModeValue, useToast, Switch,
 } from "@chakra-ui/react";
 import { useSelector } from "react-redux";
 import { logAuditAction } from "../features/part/userSlice";
@@ -26,13 +26,15 @@ const STATUS_DOT_COLOR = {
 //   DB3 : Tx_<Room>  Rx_<Room>  Px_<Room>
 //   DB1 : Temp_<Room>_SP_L/H   Rh_<Room>_SP_L/H   Dp_<Room>_SP_L/H
 //          Min_Tx_<Room>  Min_Rx_<Room>  Min_Px_<Room>
-//          Buzzer_<Room>  (bit X.x)
+//          Buzzer_<Room>  (bit X.x)  — status alarm, read-only
+//   M   : SB_<Room>  (bit, area M100.1–M102.2) — buzzer ON/OFF switch, writable
 // ─────────────────────────────────────────────────────────────────
 const getTagNames = (room) => ({
-  Tx:        `Tx_${room}`,
-  Rx:        `Rx_${room}`,
-  Px:        `Px_${room}`,
-  Buzzer:    `Buzzer_${room}`,
+  Tx:           `Tx_${room}`,
+  Rx:           `Rx_${room}`,
+  Px:           `Px_${room}`,
+  Buzzer:       `Buzzer_${room}`,
+  BuzzerSwitch: `SB_${room}`,
   Temp_SP_L: `Temp_${room}_SP_L`,
   Temp_SP_H: `Temp_${room}_SP_H`,
   Rh_SP_L:   `Rh_${room}_SP_L`,
@@ -67,10 +69,16 @@ export default function Scadamonitor() {
   const [editTimer, setEditTimer]     = useState("");
   const [saving, setSaving]           = useState(false);
 
+  // Buzzer switch modal
+  const [buzzerPopup, setBuzzerPopup] = useState(null);
+  const [editBuzzerOn, setEditBuzzerOn] = useState(false);
+  const [savingBuzzer, setSavingBuzzer] = useState(false);
+
   const wsRef    = useRef(null);
   const toast    = useToast();
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose }   = useDisclosure();
+  const { isOpen: isBuzzerOpen, onOpen: onBuzzerOpen, onClose: onBuzzerClose } = useDisclosure();
   const userGlobal = useSelector((state) => state.user.user);
 
   // Ruangan yang tampil = rooms dari AHU yang sedang dipilih
@@ -136,6 +144,12 @@ export default function Scadamonitor() {
     setEditSpH(popupData.spH  != null ? String(popupData.spH)   : "");
     setEditTimer(popupData.timer != null ? String(popupData.timer) : "");
   }, [popupData]);
+
+  // Saat popup buzzer terbuka, isi switch dengan nilai saat ini
+  useEffect(() => {
+    if (!buzzerPopup) return;
+    setEditBuzzerOn(buzzerPopup.switchOn === true);
+  }, [buzzerPopup]);
 
   // ──────────────── Helper alarm ─────────────────────────────────
   const isAlarm = (room, type, val) => {
@@ -205,6 +219,57 @@ export default function Scadamonitor() {
     }
     setSaving(false);
     onClose();
+  };
+
+  // ──────────────── Klik sel Buzzer → buka modal switch ─────────
+  const handleBuzzerClick = (room) => {
+    const t = getTagNames(room);
+    setBuzzerPopup({
+      room,
+      alarmActive: data[t.Buzzer] === true,
+      switchOn:    data[t.BuzzerSwitch] === true,
+    });
+    onBuzzerOpen();
+  };
+
+  // ──────────────── Simpan switch buzzer ke PLC ──────────────────
+  const handleSaveBuzzerToPlc = async () => {
+    if (wsRef.current?.readyState !== WebSocket.OPEN) {
+      toast({ title: "Koneksi WebSocket terputus", status: "error", duration: 3000 });
+      return;
+    }
+    if (editBuzzerOn === buzzerPopup.switchOn) {
+      onBuzzerClose();
+      return;
+    }
+    setSavingBuzzer(true);
+
+    const { room, switchOn } = buzzerPopup;
+    const t = getTagNames(room);
+
+    // Kirim write command ke Node-RED → PLC (bit M, lihat vartable S7 Endpoint)
+    wsRef.current.send(
+      JSON.stringify({ cmd: "write", tag: t.BuzzerSwitch, value: editBuzzerOn })
+    );
+
+    // Catat audit log
+    try {
+      await logAuditAction("SCADA_EDIT_LIMIT", {
+        ahu:            selectedAhu,
+        target_station: room,
+        parameter:      "Buzzer Switch",
+        old_value:      switchOn    ? "ON" : "OFF",
+        new_value:      editBuzzerOn ? "ON" : "OFF",
+        user_name:      userGlobal?.name,
+      });
+      toast({ title: "Perintah Write terkirim & Log tersimpan", status: "success", duration: 3000 });
+    } catch (err) {
+      console.error("Gagal log Buzzer Switch:", err);
+      toast({ title: "Write terkirim, tapi gagal simpan log", status: "warning", duration: 3000 });
+    }
+
+    setSavingBuzzer(false);
+    onBuzzerClose();
   };
 
   // ──────────────── Format waktu ─────────────────────────────────
@@ -314,7 +379,8 @@ export default function Scadamonitor() {
                   const txVal   = data[t.Tx];
                   const rxVal   = data[t.Rx];
                   const pxVal   = data[t.Px];
-                  const buzzerOn = data[t.Buzzer] === true;
+                  const buzzerOn       = data[t.Buzzer] === true;
+                  const buzzerSwitchOn = data[t.BuzzerSwitch] === true;
 
                   const cls = (type, val) =>
                     isAlarm(room, type, val) ? "blinking-alarm" : "normal-cell";
@@ -340,14 +406,24 @@ export default function Scadamonitor() {
                         {pxVal != null ? pxVal.toFixed(1) : "—"}
                       </Td>
 
-                      <Td sx={tdS}>
-                        {buzzerOn ? (
-                          <Badge colorScheme="red" className="animate-pulse">
-                            🚨 ACTIVE
+                      <Td sx={tdS} className="normal-cell"
+                          onClick={() => handleBuzzerClick(room)}>
+                        <Stack spacing={1} align="center">
+                          {buzzerOn ? (
+                            <Badge colorScheme="red" className="animate-pulse">
+                              🚨 ACTIVE
+                            </Badge>
+                          ) : (
+                            <Badge colorScheme="green">OK</Badge>
+                          )}
+                          <Badge
+                            fontSize="9px"
+                            variant="outline"
+                            colorScheme={buzzerSwitchOn ? "green" : "gray"}
+                          >
+                            SW {buzzerSwitchOn ? "ON" : "OFF"}
                           </Badge>
-                        ) : (
-                          <Badge colorScheme="green">OK</Badge>
-                        )}
+                        </Stack>
                       </Td>
                     </Tr>
                   );
@@ -434,6 +510,84 @@ export default function Scadamonitor() {
               onClick={handleSaveToPlc}
               isDisabled={!canWrite}
               isLoading={saving}
+              loadingText="Saving…"
+            >
+              Save to PLC
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* ── Modal Buzzer Switch ─────────────────────────────────── */}
+      <Modal isOpen={isBuzzerOpen} onClose={onBuzzerClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader borderBottomWidth="1px">
+            Buzzer Switch — {buzzerPopup?.room}
+          </ModalHeader>
+          <ModalCloseButton />
+
+          <ModalBody py={4}>
+            <Stack spacing={3}>
+              {/* Info rows */}
+              {[
+                ["AHU",     selectedAhu],
+                ["Ruangan", buzzerPopup?.room],
+              ].map(([lbl, val]) => (
+                <div key={lbl} className="flex justify-between items-center border-b pb-2">
+                  <span className="font-semibold text-gray-500">{lbl}</span>
+                  <span className="font-bold">{val}</span>
+                </div>
+              ))}
+
+              <div className="flex justify-between items-center border-b pb-2">
+                <span className="font-semibold text-gray-500">Status Alarm</span>
+                {buzzerPopup?.alarmActive ? (
+                  <Badge colorScheme="red" className="animate-pulse">
+                    🚨 ACTIVE
+                  </Badge>
+                ) : (
+                  <Badge colorScheme="green">OK</Badge>
+                )}
+              </div>
+
+              {/* Switch on/off */}
+              <div className="flex justify-between items-center pb-2">
+                <span className="font-semibold text-gray-500">Buzzer Switch</span>
+                <Stack direction="row" align="center" spacing={3}>
+                  <Text
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color={editBuzzerOn ? "green.500" : "gray.500"}
+                  >
+                    {editBuzzerOn ? "ON" : "OFF"}
+                  </Text>
+                  <Switch
+                    colorScheme="green"
+                    isChecked={editBuzzerOn}
+                    isDisabled={!canWrite}
+                    onChange={(e) => setEditBuzzerOn(e.target.checked)}
+                  />
+                </Stack>
+              </div>
+
+              {!canWrite && (
+                <Text fontSize="xs" color="red.400" textAlign="center">
+                  ⚠️ Level akses tidak mencukupi untuk ubah buzzer (butuh Level 3+)
+                </Text>
+              )}
+            </Stack>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onBuzzerClose} isDisabled={savingBuzzer}>
+              Cancel
+            </Button>
+            <Button
+              colorScheme="blue"
+              onClick={handleSaveBuzzerToPlc}
+              isDisabled={!canWrite}
+              isLoading={savingBuzzer}
               loadingText="Saving…"
             >
               Save to PLC
