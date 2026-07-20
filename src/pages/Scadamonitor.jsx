@@ -416,13 +416,13 @@ export default function Scadamonitor() {
                           ) : (
                             <Badge colorScheme="green">OK</Badge>
                           )}
-                          <Badge
+                          {/* <Badge
                             fontSize="9px"
                             variant="outline"
                             colorScheme={buzzerSwitchOn ? "green" : "gray"}
                           >
                             SW {buzzerSwitchOn ? "ON" : "OFF"}
-                          </Badge>
+                          </Badge> */}
                         </Stack>
                       </Td>
                     </Tr>
