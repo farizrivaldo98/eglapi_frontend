@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
   import {
+    Box,
     Select,
     Input,
     Button,
@@ -34,6 +35,12 @@ import { useSelector } from "react-redux";
     const [dpChartData, setDpChartData] = useState([]);
     const [rhChartData, setRhChartData] = useState([]);
     const [areaPicker, setAreaPicker] = useState();
+    // ── TAMBAHAN: searchable Area dropdown ──
+    const [areaSearchTerm, setAreaSearchTerm] = useState("");
+    const [isAreaDropdownOpen, setIsAreaDropdownOpen] = useState(false);
+    const [areaHighlightIndex, setAreaHighlightIndex] = useState(-1);
+    const areaDropdownRef = useRef(null);
+    // ─────────────────────────────────────────
     const [datePickerStart, setDatePickerStart] = useState();
     const [datePickerFinish, setDatePickerFinish] = useState();
     const [intervalMinutes, setIntervalMinutes] = useState(1); // interval averaging (menit), 1-60
@@ -86,19 +93,63 @@ import { useSelector } from "react-redux";
       fetchData();
     }, []);
   
-    const renderDropDownArea = () => {
-      return dataListTable.map((entry) => {
-        const tableName = entry.TABLE_NAME;
-        const cleanedName = tableName
-         .replace("cMT-C21B_", "")
-          .replace("_data", "");
-        return (
-          <>
-            <option value={tableName}>{cleanedName}</option>;
-          </>
-        );
-      });
+    // ── TAMBAHAN: list area + filter pencarian (case-insensitive) ──
+    const areaOptions = dataListTable.map((entry) => {
+      const tableName = entry.TABLE_NAME;
+      const cleanedName = tableName.replace("cMT-C21B_", "").replace("_data", "");
+      return { tableName, cleanedName };
+    });
+
+    const filteredAreaOptions = areaOptions.filter((item) =>
+      item.cleanedName.toLowerCase().includes(areaSearchTerm.toLowerCase())
+    );
+
+    const handleAreaSearchChange = (e) => {
+      setAreaSearchTerm(e.target.value);
+      setIsAreaDropdownOpen(true);
+      setAreaHighlightIndex(-1);
+      // area belum valid sampai user benar-benar pilih dari list
+      setAreaPicker(undefined);
     };
+
+    const handleAreaSelect = (tableName, cleanedName) => {
+      setAreaPicker(tableName);
+      setAreaSearchTerm(cleanedName);
+      setIsAreaDropdownOpen(false);
+      setAreaHighlightIndex(-1);
+    };
+
+    const handleAreaKeyDown = (e) => {
+      if (!isAreaDropdownOpen && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+        setIsAreaDropdownOpen(true);
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setAreaHighlightIndex((prev) => Math.min(prev + 1, filteredAreaOptions.length - 1));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setAreaHighlightIndex((prev) => Math.max(prev - 1, 0));
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        const item = filteredAreaOptions[areaHighlightIndex];
+        if (item) handleAreaSelect(item.tableName, item.cleanedName);
+      } else if (e.key === "Escape") {
+        setIsAreaDropdownOpen(false);
+      }
+    };
+
+    // tutup dropdown kalau klik di luar
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (areaDropdownRef.current && !areaDropdownRef.current.contains(event.target)) {
+          setIsAreaDropdownOpen(false);
+        }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+    // ─────────────────────────────────────────────────────────────
 
     // ── Interval averaging helpers ──────────────────────────────────────────
     // Data mentah dari DB per 1 menit, sudah terurut waktu ascending dari backend.
@@ -437,11 +488,6 @@ const exportToPDF = async () => {
 };
 // ────────────────────────────────────────────────────────
 
-    const emsAreaPick = (e) => {
-      var dataInput = e.target.value;
-      setAreaPicker(dataInput);
-    };
-
     const datePickStart = (e) => {
       var dataInput = e.target.value;
       setDatePickerStart(dataInput);
@@ -588,11 +634,67 @@ const exportToPDF = async () => {
     return (
       <div>
         <div className="flex flex-row justify-center space-x-4 my-6 flex-wrap xl:flex-nowrap">
-          <div className="w-96 ml-4">
+          <div className="w-96 ml-4" style={{ position: "relative" }} ref={areaDropdownRef}>
             <h5 className="mb-1">Area</h5>
-            <Select onChange={emsAreaPick} placeholder="Ruangan">
-              {renderDropDownArea()}
-            </Select>
+            <Input
+              value={areaSearchTerm}
+              onChange={handleAreaSearchChange}
+              onFocus={() => setIsAreaDropdownOpen(true)}
+              onKeyDown={handleAreaKeyDown}
+              placeholder="Ruangan"
+              size="md"
+              autoComplete="off"
+              sx={{
+                border: "1px solid",
+                borderColor: borderColor,
+                borderRadius: "0.395rem",
+                background: "var(--color-background)",
+                _hover: { borderColor: hoverBorderColor },
+              }}
+            />
+            {isAreaDropdownOpen && (
+              <Box
+                position="absolute"
+                zIndex={10}
+                mt={1}
+                w="100%"
+                maxH="300px"
+                overflowY="auto"
+                bg="var(--color-background)"
+                border="1px solid"
+                borderColor={borderColor}
+                borderRadius="0.395rem"
+                boxShadow="md"
+              >
+                {filteredAreaOptions.length === 0 ? (
+                  <Box px={3} py={2} sx={{ color: tulisanColor }}>
+                    Tidak ditemukan
+                  </Box>
+                ) : (
+                  filteredAreaOptions.map((item, index) => (
+                    <Box
+                      key={item.tableName}
+                      px={3}
+                      py={2}
+                      cursor="pointer"
+                      sx={{ color: tulisanColor }}
+                      bg={
+                        index === areaHighlightIndex
+                          ? (isDarkMode ? "gray.700" : "gray.100")
+                          : areaPicker === item.tableName
+                          ? "blue.500"
+                          : "transparent"
+                      }
+                      _hover={{ bg: isDarkMode ? "gray.700" : "gray.100" }}
+                      onMouseDown={() => handleAreaSelect(item.tableName, item.cleanedName)}
+                      onMouseEnter={() => setAreaHighlightIndex(index)}
+                    >
+                      {item.cleanedName}
+                    </Box>
+                  ))
+                )}
+              </Box>
+            )}
           </div>
           <div>
             <h5 className="mb-1"> Start Date</h5>
