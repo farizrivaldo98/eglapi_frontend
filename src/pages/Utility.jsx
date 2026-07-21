@@ -660,7 +660,7 @@ const exportToPDF = async () => {
                 w="100%"
                 maxH="300px"
                 overflowY="auto"
-                bg="var(--color-background)"
+                bg={isDarkMode ? "#1a202c" : "white"}
                 border="1px solid"
                 borderColor={borderColor}
                 borderRadius="0.395rem"
