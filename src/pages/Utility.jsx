@@ -29,7 +29,7 @@ import { useSelector } from "react-redux";
 
   
   function Utility() {
-    const [dataListTable, setDataListTable] = useState([]);
+    const [groupedAreaData, setGroupedAreaData] = useState([]); // [{ ahu, rooms: [tableName,...] }]
     const [allDataTable, setAllDataTable] = useState([]);
     const [tempChartData, setTempChartData] = useState([]);
     const [dpChartData, setDpChartData] = useState([]);
@@ -84,24 +84,45 @@ import { useSelector } from "react-redux";
     const userGlobal = useSelector((state) => state.user.user);
 
     useEffect(() => {
-      const fetchData = async () => {
-        let response = await axios.get(
-          "http://10.163.0.66:8002/part/getTabelEMS"
-        );
-        setDataListTable(response.data);
+      const fetchGroupedArea = async () => {
+        try {
+          let response = await axios.get(
+            "http://10.163.0.66:8002/part/getAreaGroupedByAhu"
+          );
+          setGroupedAreaData(response.data);
+        } catch (err) {
+          console.error("Gagal mengambil data area per AHU", err);
+        }
       };
-      fetchData();
+      fetchGroupedArea();
     }, []);
-  
-    // ── TAMBAHAN: list area + filter pencarian (case-insensitive) ──
-    const areaOptions = dataListTable.map((entry) => {
-      const tableName = entry.TABLE_NAME;
-      const cleanedName = tableName.replace("cMT-C21B_", "").replace("_data", "");
-      return { tableName, cleanedName };
-    });
 
-    const filteredAreaOptions = areaOptions.filter((item) =>
-      item.cleanedName.toLowerCase().includes(areaSearchTerm.toLowerCase())
+    // ── TAMBAHAN: list area dikelompokkan per AHU + filter pencarian (case-insensitive) ──
+    const cleanRoomName = (tableName) =>
+      tableName.replace("cMT-C21B_", "").replace("_data", "");
+
+    const groupedAreaOptions = groupedAreaData.map((group) => ({
+      ahu: group.ahu,
+      rooms: group.rooms.map((tableName) => ({
+        tableName,
+        cleanedName: cleanRoomName(tableName),
+      })),
+    }));
+
+    // filter di dalam tiap grup, grup yang hasilnya kosong disembunyikan
+    const filteredGroupedAreaOptions = groupedAreaOptions
+      .map((group) => ({
+        ahu: group.ahu,
+        rooms: group.rooms.filter((item) =>
+          item.cleanedName.toLowerCase().includes(areaSearchTerm.toLowerCase())
+        ),
+      }))
+      .filter((group) => group.rooms.length > 0);
+
+    // versi flat (tanpa header AHU) buat keyboard navigation, urutannya sama
+    // persis kayak urutan render supaya index-nya nyambung
+    const flatFilteredAreaItems = filteredGroupedAreaOptions.flatMap(
+      (group) => group.rooms
     );
 
     const handleAreaSearchChange = (e) => {
@@ -126,13 +147,13 @@ import { useSelector } from "react-redux";
       }
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setAreaHighlightIndex((prev) => Math.min(prev + 1, filteredAreaOptions.length - 1));
+        setAreaHighlightIndex((prev) => Math.min(prev + 1, flatFilteredAreaItems.length - 1));
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setAreaHighlightIndex((prev) => Math.max(prev - 1, 0));
       } else if (e.key === "Enter") {
         e.preventDefault();
-        const item = filteredAreaOptions[areaHighlightIndex];
+        const item = flatFilteredAreaItems[areaHighlightIndex];
         if (item) handleAreaSelect(item.tableName, item.cleanedName);
       } else if (e.key === "Escape") {
         setIsAreaDropdownOpen(false);
@@ -666,32 +687,59 @@ const exportToPDF = async () => {
                 borderRadius="0.395rem"
                 boxShadow="md"
               >
-                {filteredAreaOptions.length === 0 ? (
+                {filteredGroupedAreaOptions.length === 0 ? (
                   <Box px={3} py={2} sx={{ color: tulisanColor }}>
                     Tidak ditemukan
                   </Box>
                 ) : (
-                  filteredAreaOptions.map((item, index) => (
-                    <Box
-                      key={item.tableName}
-                      px={3}
-                      py={2}
-                      cursor="pointer"
-                      sx={{ color: tulisanColor }}
-                      bg={
-                        index === areaHighlightIndex
-                          ? (isDarkMode ? "gray.700" : "gray.100")
-                          : areaPicker === item.tableName
-                          ? "blue.500"
-                          : "transparent"
-                      }
-                      _hover={{ bg: isDarkMode ? "gray.700" : "gray.100" }}
-                      onMouseDown={() => handleAreaSelect(item.tableName, item.cleanedName)}
-                      onMouseEnter={() => setAreaHighlightIndex(index)}
-                    >
-                      {item.cleanedName}
-                    </Box>
-                  ))
+                  (() => {
+                    let flatIndex = -1; // urutan render harus sama persis kayak flatFilteredAreaItems
+                    return filteredGroupedAreaOptions.map((group) => (
+                      <Box key={group.ahu}>
+                        <Box
+                          px={3}
+                          py={1}
+                          fontSize="xs"
+                          fontWeight="bold"
+                          textTransform="uppercase"
+                          letterSpacing="wide"
+                          sx={{ color: tulisanColor }}
+                          bg={isDarkMode ? "gray.900" : "gray.50"}
+                          position="sticky"
+                          top={0}
+                          zIndex={1}
+                        >
+                          {group.ahu}
+                        </Box>
+                        {group.rooms.map((item) => {
+                          flatIndex += 1;
+                          const currentIndex = flatIndex;
+                          return (
+                            <Box
+                              key={item.tableName}
+                              pl={5}
+                              pr={3}
+                              py={2}
+                              cursor="pointer"
+                              sx={{ color: tulisanColor }}
+                              bg={
+                                currentIndex === areaHighlightIndex
+                                  ? (isDarkMode ? "gray.700" : "gray.100")
+                                  : areaPicker === item.tableName
+                                  ? "blue.500"
+                                  : "transparent"
+                              }
+                              _hover={{ bg: isDarkMode ? "gray.700" : "gray.100" }}
+                              onMouseDown={() => handleAreaSelect(item.tableName, item.cleanedName)}
+                              onMouseEnter={() => setAreaHighlightIndex(currentIndex)}
+                            >
+                              {item.cleanedName}
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    ));
+                  })()
                 )}
               </Box>
             )}
