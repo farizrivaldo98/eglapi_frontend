@@ -478,10 +478,12 @@ const exportToPDF = async () => {
       fontSize: 8,
     },
     columnStyles: {
-      0: { fontStyle: "bold", halign: "center", fillColor: [235, 245, 255], textColor: [0, 0, 100], cellWidth: 20 },
-      1: { textColor: [0, 0, 139] },
-      2: { textColor: [0, 0, 139] },
-      3: { textColor: [0, 0, 139] },
+      // Lebar total usable: 210 - 10 (left) - 10 (right) = 190mm
+      // Kolom label: 25mm | Tiap kolom data: (190-25)/3 = 55mm → total 190mm
+      0: { fontStyle: "bold", halign: "center", fillColor: [235, 245, 255], textColor: [0, 0, 100], cellWidth: 25 },
+      1: { textColor: [0, 0, 139], cellWidth: 55 },
+      2: { textColor: [0, 0, 139], cellWidth: 55 },
+      3: { textColor: [0, 0, 139], cellWidth: 55 },
     },
     theme: "grid",
     tableLineColor: [200, 200, 200],
