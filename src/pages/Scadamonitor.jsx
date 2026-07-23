@@ -824,6 +824,7 @@
 //     </div>
 //   );
 // }
+
 import { useState, useEffect, useRef } from "react";
 import {
   Text, Table, Thead, Tbody, Tr, Th, Td,
@@ -922,9 +923,8 @@ const CHART_TIME_RANGES = [
   { label: "12 Jam", hours: 12 },
 ];
 
-const CHART_COLORS   = { Tx: "#1e90ff", Rx: "#ff4500", Px: "#32cd32" };
-const CHART_UNITS    = { Tx: "°C",       Rx: "%",        Px: "Pa"     };
-const CHART_Y_RANGE  = { Tx: [0, 100],   Rx: [0, 100],   Px: [0, 150] };
+const CHART_COLORS = { Tx: "#1e90ff", Rx: "#ff4500", Px: "#32cd32" };
+const CHART_UNITS  = { Tx: "°C",       Rx: "%",        Px: "Pa"     };
 
 // ─────────────────────────────────────────────────────────────────
 export default function Scadamonitor() {
