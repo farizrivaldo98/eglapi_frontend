@@ -1135,9 +1135,7 @@ export default function Scadamonitor() {
                   </PopoverContent>
                 </Popover>
                 <Badge colorScheme="purple">{customRooms.length} ruangan dipilih</Badge>
-                <Text fontSize="xs" color="gray.400">
-                  (tersimpan otomatis di browser ini)
-                </Text>
+             
               </>
             )}
           </div>
