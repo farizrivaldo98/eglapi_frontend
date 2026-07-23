@@ -997,7 +997,7 @@ export default function Scadamonitor() {
               variant={viewMode === "ahu" ? "solid" : "outline"}
               onClick={() => setViewMode("ahu")}
             >
-              📋 Per AHU
+              All AHU
             </Button>
             <Button
               size="sm"
@@ -1005,7 +1005,7 @@ export default function Scadamonitor() {
               variant={viewMode === "custom" ? "solid" : "outline"}
               onClick={() => setViewMode("custom")}
             >
-              ⭐ Monitor Saya
+               Costume list
             </Button>
 
             {viewMode === "ahu" ? (
@@ -1033,7 +1033,7 @@ export default function Scadamonitor() {
                 <Popover placement="bottom-start" closeOnBlur>
                   <PopoverTrigger>
                     <Button size="sm" variant="outline" colorScheme="purple" ml={2}>
-                      ⭐ Pilih Ruangan{customRooms.length > 0 ? ` (${customRooms.length})` : ""}
+                       List Room{customRooms.length > 0 ? ` (${customRooms.length})` : ""}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent width="320px">
