@@ -1037,7 +1037,7 @@ export default function Scadamonitor() {
               variant={viewMode === "ahu" ? "solid" : "outline"}
               onClick={() => setViewMode("ahu")}
             >
-              📋 Per AHU
+              All Ahu
             </Button>
             <Button
               size="sm"
