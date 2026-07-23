@@ -617,8 +617,6 @@
 //     </div>
 //   );
 // }
-
-
 import { useState, useEffect, useRef } from "react";
 import {
   Text, Table, Thead, Tbody, Tr, Th, Td,
@@ -642,6 +640,34 @@ const STATUS_DOT_COLOR = {
   live:       "bg-green-500",
   connecting: "bg-orange-500",
   down:       "bg-red-500",
+};
+
+// ─────────────────────────────────────────────────────────────────
+// Kustomisasi tampilan disimpan di localStorage — melekat ke browser
+// yang dipakai (per laptop/PC), bukan ke user. Tetap ada walau
+// browser ditutup & dibuka lagi; beda laptop otomatis beda isinya.
+// ─────────────────────────────────────────────────────────────────
+const LS_VIEW_MODE     = "scada_view_mode";
+const LS_CUSTOM_ROOMS  = "scada_custom_rooms";
+const LS_SELECTED_AHU  = "scada_selected_ahu";
+
+const lsGet = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+};
+const lsSet = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // localStorage tidak tersedia (mis. private mode) — abaikan, fallback ke state saja
+  }
+};
+const lsRemove = (key) => {
+  try { localStorage.removeItem(key); } catch { /* no-op */ }
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -680,13 +706,11 @@ export default function Scadamonitor() {
   const [data, setData]               = useState({});
   // Konfigurasi AHU [{ahu, rooms}] — dikirim dari Node-RED, bukan hardcode
   const [ahuConfig, setAhuConfig]     = useState([]);
-  const [selectedAhu, setSelectedAhu] = useState(null);
+  const [selectedAhu, setSelectedAhu] = useState(() => lsGet(LS_SELECTED_AHU, null));
 
-  // ── Kustomisasi tampilan (LOKAL per-browser, tidak disimpan) ──
-  // Reset otomatis tiap refresh karena cuma disimpan di state React,
-  // bukan di localStorage/server, jadi tiap laptop yang buka bisa beda.
-  const [viewMode, setViewMode]       = useState("ahu"); // "ahu" | "custom"
-  const [customRooms, setCustomRooms] = useState([]);    // array nama ruangan
+  // ── Kustomisasi tampilan (disimpan di localStorage browser ini) ──
+  const [viewMode, setViewMode]       = useState(() => lsGet(LS_VIEW_MODE, "ahu")); // "ahu" | "custom"
+  const [customRooms, setCustomRooms] = useState(() => lsGet(LS_CUSTOM_ROOMS, [])); // array nama ruangan
   const [roomSearch, setRoomSearch]   = useState("");
 
   const [status, setStatus]           = useState("down");
@@ -741,6 +765,17 @@ export default function Scadamonitor() {
     const matches = ahuConfig.flatMap((a) => a.rooms.filter((r) => r.toLowerCase().includes(q)));
     setCustomRooms((prev) => Array.from(new Set([...prev, ...matches])));
   };
+  const resetCustomization = () => {
+    setViewMode("ahu");
+    setCustomRooms([]);
+    lsRemove(LS_CUSTOM_ROOMS);
+    lsRemove(LS_VIEW_MODE);
+  };
+
+  // ── Simpan otomatis ke localStorage tiap ada perubahan ─────────
+  useEffect(() => { lsSet(LS_VIEW_MODE, viewMode); }, [viewMode]);
+  useEffect(() => { lsSet(LS_CUSTOM_ROOMS, customRooms); }, [customRooms]);
+  useEffect(() => { if (selectedAhu) lsSet(LS_SELECTED_AHU, selectedAhu); }, [selectedAhu]);
 
   // Bisa write jika level >= 3
   const canWrite = userGlobal?.level != null && userGlobal.level >= 3;
@@ -772,8 +807,13 @@ export default function Scadamonitor() {
             if (JSON.stringify(prev) === JSON.stringify(payload.ahuConfig)) return prev;
             return payload.ahuConfig;
           });
-          // Default pilih AHU pertama saat pertama kali terima config
-          setSelectedAhu((prev) => prev ?? payload.ahuConfig[0]?.ahu ?? null);
+          // Default pilih AHU pertama saat pertama kali terima config,
+          // atau fallback kalau AHU yang tersimpan di localStorage
+          // ternyata sudah tidak ada lagi di config terbaru
+          setSelectedAhu((prev) => {
+            const stillValid = payload.ahuConfig.some((a) => a.ahu === prev);
+            return stillValid ? prev : (payload.ahuConfig[0]?.ahu ?? null);
+          });
         }
       } catch (e) {
         console.error("WS Parse Error:", e);
@@ -997,7 +1037,7 @@ export default function Scadamonitor() {
               variant={viewMode === "ahu" ? "solid" : "outline"}
               onClick={() => setViewMode("ahu")}
             >
-              All AHU
+              📋 Per AHU
             </Button>
             <Button
               size="sm"
@@ -1005,8 +1045,14 @@ export default function Scadamonitor() {
               variant={viewMode === "custom" ? "solid" : "outline"}
               onClick={() => setViewMode("custom")}
             >
-               Costume list
+              Custom Monitor
             </Button>
+
+            {(viewMode === "custom" || customRooms.length > 0) && (
+              <Button size="sm" variant="ghost" colorScheme="red" onClick={resetCustomization}>
+                ↺ Reset Kustomisasi
+              </Button>
+            )}
 
             {viewMode === "ahu" ? (
               <>
@@ -1033,14 +1079,14 @@ export default function Scadamonitor() {
                 <Popover placement="bottom-start" closeOnBlur>
                   <PopoverTrigger>
                     <Button size="sm" variant="outline" colorScheme="purple" ml={2}>
-                       List Room{customRooms.length > 0 ? ` (${customRooms.length})` : ""}
+                       Select Room {customRooms.length > 0 ? ` (${customRooms.length})` : ""}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent width="320px">
                     <PopoverArrow />
                     <PopoverCloseButton />
                     <PopoverHeader fontWeight="semibold" fontSize="sm">
-                      Pilih ruangan untuk dimonitor
+                      Select Room to Monitor
                     </PopoverHeader>
                     <PopoverBody maxH="360px" overflowY="auto">
                       <Input
@@ -1090,7 +1136,7 @@ export default function Scadamonitor() {
                 </Popover>
                 <Badge colorScheme="purple">{customRooms.length} ruangan dipilih</Badge>
                 <Text fontSize="xs" color="gray.400">
-                  (khusus browser ini, hilang saat refresh)
+                  (tersimpan otomatis di browser ini)
                 </Text>
               </>
             )}
@@ -1208,9 +1254,9 @@ export default function Scadamonitor() {
         ahuConfig.length > 0 &&
         viewMode === "custom" && (
           <div className="mx-6 mb-4 p-8 rounded-md border-2 border-dashed border-gray-300 text-center text-gray-400">
-            <Text fontSize="sm" fontWeight="medium">Belum ada ruangan dipilih</Text>
+            <Text fontSize="sm" fontWeight="medium">No Selected</Text>
             <Text fontSize="xs" className="mt-1">
-              Klik tombol <strong> Pilih Ruangan</strong> di atas untuk mulai monitoring custom kamu.
+              Click  <strong> Select Room </strong> to Monitor
             </Text>
           </div>
         )
