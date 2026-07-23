@@ -1210,7 +1210,7 @@ export default function Scadamonitor() {
           <div className="mx-6 mb-4 p-8 rounded-md border-2 border-dashed border-gray-300 text-center text-gray-400">
             <Text fontSize="sm" fontWeight="medium">Belum ada ruangan dipilih</Text>
             <Text fontSize="xs" className="mt-1">
-              Klik tombol <strong>⭐ Pilih Ruangan</strong> di atas untuk mulai monitoring custom kamu.
+              Klik tombol <strong> Pilih Ruangan</strong> di atas untuk mulai monitoring custom kamu.
             </Text>
           </div>
         )
