@@ -9,7 +9,7 @@ const navigation = [
   { name: "Utility",     path: "/Utility" },
   { name: "Production",  path: "/production" },
   { name: "Chiller",    path: "/Chiller" },
-  { name: "Scadamonitor", path: "/Scadamonitor"}
+  { name: "Scadamonitor", path: "/Scadamonitor"},
   { name: "Energy", path: "/Energy"}
   
 ];
