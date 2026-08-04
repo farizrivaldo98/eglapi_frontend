@@ -43,7 +43,7 @@ function ParetoLine() {
         height={1}
         lineLabel="Cumulative percentage"
         data={{
-          "Lapi Farma Plant": {
+          "Lapi Plant": {
             "Line 1": line1,
             "Line 2": line2,
             "Line 3": line3,
