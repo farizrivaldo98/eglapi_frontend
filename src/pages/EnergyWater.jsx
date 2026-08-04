@@ -392,6 +392,7 @@ function EnergyWater() {
         color: avgColor,
         lineColor: avgColor,
         lineDashType: "dash",
+        markerSize: 0,
         markerColor: avgColor,
         dataPoints: avgChartData,
       });
