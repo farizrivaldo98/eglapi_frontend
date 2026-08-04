@@ -353,7 +353,7 @@ function EnergyWater() {
 
     doc.save(`table-data-EnergyWater-${selectedMeter.label.replace(/\s+/g, "")}-${fileSuffix}.pdf`);
 
-    await logAuditAction("EXPORT_PDF_ENERGY_WATER", {
+    await logAuditAction("EXPORT_PDF", {
       start: datePickerStart,
       finish: datePickerFinish,
       period: periodType,
