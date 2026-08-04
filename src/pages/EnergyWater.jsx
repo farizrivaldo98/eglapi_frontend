@@ -562,7 +562,7 @@ function EnergyWater() {
           onChange={(e) => setShowAverageLine(e.target.checked)}
           colorScheme="orange"
         >
-          <span className="text-text">Tampilkan garis rata-rata</span>
+          <span className="text-text">Averages</span>
         </Checkbox>
       </div>
 
