@@ -16,22 +16,7 @@ function ParetoLine() {
   console.log("date", date);
 
   const fetchData = async () => {
-    // class sakaFarmaPlant {
-    //   constructor(Line1, Line2, Line3, Line4) {
-    //     this.Line1 = Line1;
-    //     this.Line2 = Line2;
-    //     this.Line3 = Line3;
-    //     this.Line4 = Line4;
-    //   }
-    // }
-    // const dataParetoSaka = new sakaFarmaPlant(
-    //   data1[0].total,
-    //   data1[1].total,
-    //   data1[2].total,
-    //   data1[3].total
-    // );
-    // console.log(dataParetoSaka);
-    // paretoSetData(dataParetoSaka);
+
 
     let response = await axios.get("http://10.163.0.66:8002/part/pareto", {
       params: {
@@ -58,7 +43,7 @@ function ParetoLine() {
         height={1}
         lineLabel="Cumulative percentage"
         data={{
-          "Saka Farma Plant": {
+          "Lapi Farma Plant": {
             "Line 1": line1,
             "Line 2": line2,
             "Line 3": line3,
