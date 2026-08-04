@@ -357,7 +357,7 @@ function EnergyWater() {
       start: datePickerStart,
       finish: datePickerFinish,
       period: periodType,
-      meter: selectedMeterKey,
+      area: selectedMeterKey,
     });
   };
   // ────────────────────────────────────────────────────────
