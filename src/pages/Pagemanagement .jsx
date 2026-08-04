@@ -34,7 +34,7 @@ const PAGES = [
   { key: "Utility",     label: "Utility" },
   { key: "Production",  label: "Production" },
   { key: "Chiller",    label: "Chiller" },
-    { key: "Scadamonitor",    label: "Scadamonitor" }
+    { key: "Scadamonitor",    label: "Scadamonitor" },
     { key: "Energy",    label: "Energy" }
 
 ];
