@@ -10,6 +10,8 @@ const navigation = [
   { name: "Production",  path: "/production" },
   { name: "Chiller",    path: "/Chiller" },
   { name: "Scadamonitor", path: "/Scadamonitor"}
+  { name: "Energy", path: "/Energy"}
+  
 ];
 
 const IDLE_TIMEOUT = 10 * 60 * 1000;

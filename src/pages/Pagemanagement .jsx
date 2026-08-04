@@ -35,6 +35,8 @@ const PAGES = [
   { key: "Production",  label: "Production" },
   { key: "Chiller",    label: "Chiller" },
     { key: "Scadamonitor",    label: "Scadamonitor" }
+    { key: "Energy",    label: "Energy" }
+
 ];
 
 export default function PageManagement() {
