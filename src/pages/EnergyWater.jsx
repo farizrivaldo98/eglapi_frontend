@@ -44,8 +44,8 @@ const PERIOD_LABELS = {
 // dengan nama kolom dari backend - dropdown, chart, tabel, dan PDF export
 // otomatis ikut, gak perlu ubah komponen ini lagi.
 const METERS = [
-  { key: "trane1", label: "Trane 1", colorLight: "#1e90ff", colorDark: "#00bfff" },
-  { key: "trane2", label: "Trane 2", colorLight: "#32cd32", colorDark: "#00ff00" },
+  { key: "trane1", label: "Train 1", colorLight: "#1e90ff", colorDark: "#00bfff" },
+  { key: "trane2", label: "Train 2", colorLight: "#32cd32", colorDark: "#00ff00" },
   // { key: "trane3", label: "Trane 3", colorLight: "#ff8c00", colorDark: "#ffa500" },
 ];
 
