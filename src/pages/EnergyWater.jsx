@@ -391,6 +391,7 @@ function EnergyWater() {
         yValueFormatString: "",
         color: avgColor,
         lineColor: avgColor,
+        lineDashType: "dash",
         markerColor: avgColor,
         dataPoints: avgChartData,
       });
