@@ -44,10 +44,10 @@ function Energy() {
         </TabList>
         <TabPanels>
           <TabPanel px={0}>
-            <EnergyPower channels={CHANNELS} metrics={METRICS} apiBase={API_BASE} isDarkMode={isDarkMode} />
+            <EnergyPower apiBase={API_BASE} isDarkMode={isDarkMode} />
           </TabPanel>
           <TabPanel px={0}>
-            <EnergyWater channels={CHANNELS} metrics={METRICS} apiBase={API_BASE} isDarkMode={isDarkMode} />
+            <EnergyWater  apiBase={API_BASE} isDarkMode={isDarkMode} />
           </TabPanel>
         </TabPanels>
       </Tabs>
