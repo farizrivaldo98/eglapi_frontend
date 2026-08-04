@@ -11,15 +11,15 @@ import {
 const BASE_URL = "http://10.163.0.66:8002";
 
 const ACTION_CFG = {
-  LOGIN:             { colorScheme: "green",  label: "Login"    },
-  LOGOUT:            { colorScheme: "red",    label: "Logout"    },
-  VIEW_UTILITY:      { colorScheme: "blue",   label: "Lihat Data"  },
-  EXPORT_PDF:        { colorScheme: "yellow", label: "Export PDF" },
+  LOGIN:             { colorScheme: "yellow",  label: "Login"    },
+  LOGOUT:            { colorScheme: "yellow",    label: "Logout"    },
+  VIEW_UTILITY:      { colorScheme: "green",   label: "Lihat Data"  },
+  EXPORT_PDF:        { colorScheme: "red", label: "Export PDF" },
   ADMIN_EDIT_USER:   { colorScheme: "orange", label: "Edit User"},
-  ADMIN_DELETE_USER: { colorScheme: "red",    label: "Hapus User" },
+  ADMIN_DELETE_USER: { colorScheme: "orange",    label: "Hapus User" },
   SCADA_EDIT_LIMIT: { colorScheme: "putple",    label: "Edit Limit" },
   VIEW_CHILLER: { colorScheme: "green",    label: "View Chiller" },
-
+  VIEW_ENERGY_WATER: { colorScheme: "green",    label: "View Water" }
 };
 
 const ROWS_PER_PAGE = 20;
