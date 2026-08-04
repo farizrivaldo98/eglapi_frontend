@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import {
   Select,
   Input,
   Button,
+  Checkbox,
   Table,
   Thead,
   Tbody,
@@ -36,22 +37,33 @@ const PERIOD_LABELS = {
   monthly: "Per Bulan",
 };
 
+// Daftar meter yang bisa dipilih di dropdown. Backend (getEnergyWaterHistorical)
+// saat ini balikin tiap row dengan kolom trane1 & trane2 (lihat
+// mergeEnergyWaterMeters di databaseControllers.js). Kalau nanti nambah meter
+// baru (trane3, dst), tinggal tambah entry di sini pakai `key` yang sama
+// dengan nama kolom dari backend - dropdown, chart, tabel, dan PDF export
+// otomatis ikut, gak perlu ubah komponen ini lagi.
+const METERS = [
+  { key: "trane1", label: "Trane 1", colorLight: "#1e90ff", colorDark: "#00bfff" },
+  { key: "trane2", label: "Trane 2", colorLight: "#32cd32", colorDark: "#00ff00" },
+  // { key: "trane3", label: "Trane 3", colorLight: "#ff8c00", colorDark: "#ffa500" },
+];
+
 function EnergyWater() {
   const [periodType, setPeriodType] = useState("hourly");
   const [datePickerStart, setDatePickerStart] = useState();
   const [datePickerFinish, setDatePickerFinish] = useState();
 
   // [{ id, label, trane1, trane2, average }] - hasil delta totalizer per
-  // periode, sudah digabung Trane1+Trane2+average dari backend.
+  // periode, sudah digabung semua meter + average dari backend. Ganti
+  // dropdown meter / checkbox rata-rata gak perlu fetch ulang, tinggal
+  // filter ulang array ini di frontend.
   const [mergedData, setMergedData] = useState([]);
-  const [trane1ChartData, setTrane1ChartData] = useState([]);
-  const [trane2ChartData, setTrane2ChartData] = useState([]);
-  const [avgChartData, setAvgChartData] = useState([]);
 
-  const emptyStats = { avg: 0, max: 0, min: 0 };
-  const [trane1Stats, setTrane1Stats] = useState(emptyStats);
-  const [trane2Stats, setTrane2Stats] = useState(emptyStats);
-  const [avgStats, setAvgStats] = useState(emptyStats);
+  // Meter yang lagi ditampilkan di grafik & tabel.
+  const [selectedMeterKey, setSelectedMeterKey] = useState(METERS[0].key);
+  // Toggle garis rata-rata di grafik.
+  const [showAverageLine, setShowAverageLine] = useState(true);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -105,6 +117,22 @@ function EnergyWater() {
     };
   };
 
+  const selectedMeter = METERS.find((m) => m.key === selectedMeterKey) || METERS[0];
+
+  // Data grafik: garis meter yang lagi dipilih + garis rata-rata, dihitung
+  // dari mergedData yang udah ke-fetch.
+  const selectedChartData = useMemo(
+    () => mergedData.map((r, idx) => ({ x: idx, y: Number(r[selectedMeterKey]) || 0, label: r.label })),
+    [mergedData, selectedMeterKey]
+  );
+  const avgChartData = useMemo(
+    () => mergedData.map((r, idx) => ({ x: idx, y: Number(r.average) || 0, label: r.label })),
+    [mergedData]
+  );
+
+  const selectedStats = useMemo(() => calcStats(mergedData, selectedMeterKey), [mergedData, selectedMeterKey]);
+  const avgStats = useMemo(() => calcStats(mergedData, "average"), [mergedData]);
+
   // ── DIMODIFIKASI: tambah logAuditAction setelah fetch berhasil ──
   const getSubmit = async () => {
     if (!datePickerStart || !datePickerFinish) {
@@ -131,14 +159,6 @@ function EnergyWater() {
       setCurrentPage(1);
       setIsTableVisible(true);
 
-      setTrane1ChartData(rows.map((r, idx) => ({ x: idx, y: r.trane1, label: r.label })));
-      setTrane2ChartData(rows.map((r, idx) => ({ x: idx, y: r.trane2, label: r.label })));
-      setAvgChartData(rows.map((r, idx) => ({ x: idx, y: r.average, label: r.label })));
-
-      setTrane1Stats(calcStats(rows, "trane1"));
-      setTrane2Stats(calcStats(rows, "trane2"));
-      setAvgStats(calcStats(rows, "average"));
-
       if (rows.length === 0) {
         setError("Tidak ada data pada rentang tanggal ini");
       }
@@ -148,6 +168,7 @@ function EnergyWater() {
         start: datePickerStart,
         finish: datePickerFinish,
         period: periodType,
+        meter: selectedMeterKey,
       });
       // ─────────────────────────────────────────────────────────
     } catch (err) {
@@ -185,7 +206,7 @@ function EnergyWater() {
     if (mergedData.length === 0) {
       return (
         <Tr>
-          <Td colSpan={5} textAlign="center" display="table-cell">
+          <Td colSpan={4} textAlign="center" display="table-cell">
             No data available
           </Td>
         </Tr>
@@ -196,8 +217,7 @@ function EnergyWater() {
       <Tr key={row.id}>
         <Td>{row.id}</Td>
         <Td>{row.label}</Td>
-        <Td>{row.trane1}</Td>
-        <Td>{row.trane2}</Td>
+        <Td>{row[selectedMeterKey]}</Td>
         <Td>{row.average}</Td>
       </Tr>
     ));
@@ -221,8 +241,7 @@ function EnergyWater() {
     const columns = [
       { header: "No", dataKey: "id" },
       { header: "Periode", dataKey: "label" },
-      { header: `Trane1 (${VOLUME_UNIT})`, dataKey: "trane1" },
-      { header: `Trane2 (${VOLUME_UNIT})`, dataKey: "trane2" },
+      { header: `${selectedMeter.label} (${VOLUME_UNIT})`, dataKey: selectedMeterKey },
       { header: `Average (${VOLUME_UNIT})`, dataKey: "average" },
     ];
 
@@ -256,15 +275,15 @@ function EnergyWater() {
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text(`Summary - ${PERIOD_LABELS[periodType]}`, 14, 32);
+    doc.text(`Summary - ${PERIOD_LABELS[periodType]} (${selectedMeter.label})`, 14, 32);
     doc.setFont("helvetica", "normal");
 
     autoTable(doc, {
-      head: [["", `Trane1 (${VOLUME_UNIT})`, `Trane2 (${VOLUME_UNIT})`, `Average (${VOLUME_UNIT})`]],
+      head: [["", `${selectedMeter.label} (${VOLUME_UNIT})`, `Average (${VOLUME_UNIT})`]],
       body: [
-        ["Avg", String(trane1Stats.avg), String(trane2Stats.avg), String(avgStats.avg)],
-        ["Max", String(trane1Stats.max), String(trane2Stats.max), String(avgStats.max)],
-        ["Min", String(trane1Stats.min), String(trane2Stats.min), String(avgStats.min)],
+        ["Avg", String(selectedStats.avg), String(avgStats.avg)],
+        ["Max", String(selectedStats.max), String(avgStats.max)],
+        ["Min", String(selectedStats.min), String(avgStats.min)],
       ],
       startY: 34,
       margin: { left: 10, right: 10 },
@@ -277,10 +296,9 @@ function EnergyWater() {
         fontSize: 8,
       },
       columnStyles: {
-        0: { fontStyle: "bold", halign: "center", fillColor: [235, 245, 255], textColor: [0, 0, 100], cellWidth: 25 },
-        1: { textColor: [0, 0, 139], cellWidth: 55 },
-        2: { textColor: [0, 0, 139], cellWidth: 55 },
-        3: { textColor: [0, 0, 139], cellWidth: 55 },
+        0: { fontStyle: "bold", halign: "center", fillColor: [235, 245, 255], textColor: [0, 0, 100], cellWidth: 30 },
+        1: { textColor: [0, 0, 139], cellWidth: 70 },
+        2: { textColor: [0, 0, 139], cellWidth: 70 },
       },
       theme: "grid",
       tableLineColor: [200, 200, 200],
@@ -301,7 +319,7 @@ function EnergyWater() {
 
         doc.setFontSize(9);
         doc.text(
-          `Generated by EMS System - Energy Water (${PERIOD_LABELS[periodType]}) - ${formattedDateTime} - ${userGlobal.username}`,
+          `Generated by EMS System - Energy Water (${PERIOD_LABELS[periodType]} - ${selectedMeter.label}) - ${formattedDateTime} - ${userGlobal.username}`,
           14,
           pageHeight - 10
         );
@@ -318,99 +336,103 @@ function EnergyWater() {
       doc.putTotalPages(totalPagesExp);
     }
 
-    doc.save(`table-data-EnergyWater-${fileSuffix}.pdf`);
+    doc.save(`table-data-EnergyWater-${selectedMeter.label.replace(/\s+/g, "")}-${fileSuffix}.pdf`);
 
     await logAuditAction("EXPORT_PDF_ENERGY_WATER", {
       start: datePickerStart,
       finish: datePickerFinish,
       period: periodType,
+      meter: selectedMeterKey,
     });
   };
   // ────────────────────────────────────────────────────────
 
-  // Builder buat 3 chart yang sama bentuknya (Trane1 / Average / Trane2),
-  // tinggal beda judul, warna, dan dataPoints-nya.
-  const buildChartOptions = (title, subtitle, dataPoints, lineColor) => ({
-    zoomEnabled: true,
-    theme: isDarkMode ? "dark2" : "light2",
-    backgroundColor: isDarkMode ? "#171717" : "#ffffff",
-    Margin: 8,
-    title: {
-      text: title,
-      fontColor: isDarkMode ? "white" : "black",
-      fontSize: 16,
-    },
-    subtitles: [
-      {
-        text: subtitle,
-        fontColor: isDarkMode ? "white" : "black",
-      },
-    ],
-    axisY: {
-      title: `Volume (${VOLUME_UNIT})`,
-      titleFontColor: lineColor,
-      gridColor: isDarkMode ? "#444" : "#bfbfbf",
-      labelFontColor: lineColor,
-      lineColor: lineColor,
-      tickColor: lineColor,
-      tickLength: 5,
-      tickThickness: 2,
-    },
-    axisX: {
-      lineColor: isDarkMode ? "#d6d6d6" : "#474747",
-      labelFontColor: isDarkMode ? "white" : "black",
-      labelAngle: -30,
-      tickLength: 5,
-      tickThickness: 2,
-      tickColor: isDarkMode ? "#d6d6d6" : "#474747",
-    },
-    toolTip: { shared: true },
-    data: [
+  // 1 chart, isinya garis meter yang lagi dipilih + garis rata-rata (opsional,
+  // ngikutin checkbox showAverageLine).
+  const chartOptions = useMemo(() => {
+    const meterColor = isDarkMode ? selectedMeter.colorDark : selectedMeter.colorLight;
+    const avgColor = isDarkMode ? "#ffa500" : "#ff8c00";
+
+    const series = [
       {
         type: "line",
-        name: title,
+        name: selectedMeter.label,
         showInLegend: true,
         xValueFormatString: "",
         yValueFormatString: "",
-        color: lineColor,
-        lineColor: lineColor,
-        markerColor: lineColor,
-        dataPoints,
+        color: meterColor,
+        lineColor: meterColor,
+        markerColor: meterColor,
+        dataPoints: selectedChartData,
       },
-    ],
-  });
+    ];
 
-  const periodLabel = PERIOD_LABELS[periodType];
+    if (showAverageLine) {
+      series.push({
+        type: "line",
+        name: "Average",
+        showInLegend: true,
+        xValueFormatString: "",
+        yValueFormatString: "",
+        color: avgColor,
+        lineColor: avgColor,
+        markerColor: avgColor,
+        dataPoints: avgChartData,
+      });
+    }
 
-  const trane1Options = buildChartOptions(
-    "Trane 1",
-    `Pemakaian Air ${periodLabel}`,
-    trane1ChartData,
-    isDarkMode ? "#00bfff" : "#1e90ff"
-  );
-  const avgOptions = buildChartOptions(
-    "Average",
-    `Rata-rata Trane 1 & 2 ${periodLabel}`,
-    avgChartData,
-    isDarkMode ? "#ffa500" : "#ff8c00"
-  );
-  const trane2Options = buildChartOptions(
-    "Trane 2",
-    `Pemakaian Air ${periodLabel}`,
-    trane2ChartData,
-    isDarkMode ? "#00ff00" : "#32cd32"
-  );
+    return {
+      zoomEnabled: true,
+      theme: isDarkMode ? "dark2" : "light2",
+      backgroundColor: isDarkMode ? "#171717" : "#ffffff",
+      Margin: 8,
+      title: {
+        text: `Pemakaian Air - ${selectedMeter.label}`,
+        fontColor: isDarkMode ? "white" : "black",
+        fontSize: 16,
+      },
+      subtitles: [
+        {
+          text: PERIOD_LABELS[periodType],
+          fontColor: isDarkMode ? "white" : "black",
+        },
+      ],
+      axisY: {
+        title: `Volume (${VOLUME_UNIT})`,
+        titleFontColor: isDarkMode ? "white" : "black",
+        gridColor: isDarkMode ? "#444" : "#bfbfbf",
+        labelFontColor: isDarkMode ? "white" : "black",
+        lineColor: isDarkMode ? "#d6d6d6" : "#474747",
+        tickColor: isDarkMode ? "#d6d6d6" : "#474747",
+        tickLength: 5,
+        tickThickness: 2,
+      },
+      axisX: {
+        lineColor: isDarkMode ? "#d6d6d6" : "#474747",
+        labelFontColor: isDarkMode ? "white" : "black",
+        labelAngle: -30,
+        tickLength: 5,
+        tickThickness: 2,
+        tickColor: isDarkMode ? "#d6d6d6" : "#474747",
+      },
+      legend: {
+        fontColor: isDarkMode ? "white" : "black",
+      },
+      toolTip: { shared: true },
+      data: series,
+    };
+  }, [selectedMeter, selectedChartData, avgChartData, showAverageLine, isDarkMode, periodType]);
 
-  const renderChartPanel = (options) => (
-    <div className="flex-1 min-w-0 block bg-card rounded-lg p-1 shadow-lg overflow-x-auto">
+  const renderChart = () => (
+    <div className="w-full max-w-5xl mx-auto block bg-card rounded-lg p-1 shadow-lg overflow-x-auto">
       {loading ? (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center py-10">
           <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" />
         </div>
       ) : error && mergedData.length === 0 ? (
-        <div className="text-red-500 flex flex-col items-center">No available data</div>
+        <div className="text-red-500 flex flex-col items-center py-10">No available data</div>
       ) : (
-        <CanvasJSChart options={options} />
+        <CanvasJSChart options={chartOptions} />
       )}
     </div>
   );
@@ -436,6 +458,28 @@ function EnergyWater() {
             <option value="hourly">Per Jam</option>
             <option value="daily">Per Hari</option>
             <option value="monthly">Per Bulan</option>
+          </Select>
+        </div>
+        <div>
+          <h5 className="mb-1">Meter</h5>
+          <Select
+            value={selectedMeterKey}
+            onChange={(e) => setSelectedMeterKey(e.target.value)}
+            size="md"
+            width="160px"
+            sx={{
+              border: "1px solid",
+              borderColor: borderColor,
+              borderRadius: "0.395rem",
+              background: "var(--color-background)",
+              _hover: { borderColor: hoverBorderColor },
+            }}
+          >
+            {METERS.map((m) => (
+              <option key={m.key} value={m.key}>
+                {m.label}
+              </option>
+            ))}
           </Select>
         </div>
         <div>
@@ -496,28 +540,30 @@ function EnergyWater() {
         </div>
       </div>
 
-      {/* 3 chart berdampingan: Trane1 - Average (tengah) - Trane2 */}
-      <div className="flex flex-col xl:flex-row justify-center gap-4 my-6 mx-4">
-        {renderChartPanel(trane1Options)}
-        {renderChartPanel(avgOptions)}
-        {renderChartPanel(trane2Options)}
+      {/* Checkbox toggle garis rata-rata di grafik */}
+      <div className="flex justify-center mt-2">
+        <Checkbox
+          isChecked={showAverageLine}
+          onChange={(e) => setShowAverageLine(e.target.checked)}
+          colorScheme="orange"
+        >
+          <span className="text-text">Tampilkan garis rata-rata</span>
+        </Checkbox>
       </div>
+
+      {/* 1 chart: garis meter yang dipilih + garis rata-rata (opsional) */}
+      <div className="my-4 mx-4">{renderChart()}</div>
 
       <Stack className="flex flex-row justify-center mb-4 flex-wrap" direction="row" spacing={4} align="center">
         <div className="mt-3">
-          <div className="ml-16 text-text">Avg Trane1 = {trane1Stats.avg.toLocaleString()} {VOLUME_UNIT}</div>
-          <div className="ml-16 text-text">Max Trane1 = {trane1Stats.max.toLocaleString()} {VOLUME_UNIT}</div>
-          <div className="ml-16 text-text">Min Trane1 = {trane1Stats.min.toLocaleString()} {VOLUME_UNIT}</div>
+          <div className="ml-16 text-text">Avg {selectedMeter.label} = {selectedStats.avg.toLocaleString()} {VOLUME_UNIT}</div>
+          <div className="ml-16 text-text">Max {selectedMeter.label} = {selectedStats.max.toLocaleString()} {VOLUME_UNIT}</div>
+          <div className="ml-16 text-text">Min {selectedMeter.label} = {selectedStats.min.toLocaleString()} {VOLUME_UNIT}</div>
         </div>
         <div className="mt-3">
           <div className="ml-16 text-text">Avg Average = {avgStats.avg.toLocaleString()} {VOLUME_UNIT}</div>
           <div className="ml-16 text-text">Max Average = {avgStats.max.toLocaleString()} {VOLUME_UNIT}</div>
           <div className="ml-16 text-text">Min Average = {avgStats.min.toLocaleString()} {VOLUME_UNIT}</div>
-        </div>
-        <div className="mt-3">
-          <div className="ml-16 text-text">Avg Trane2 = {trane2Stats.avg.toLocaleString()} {VOLUME_UNIT}</div>
-          <div className="ml-16 text-text">Max Trane2 = {trane2Stats.max.toLocaleString()} {VOLUME_UNIT}</div>
-          <div className="ml-16 text-text">Min Trane2 = {trane2Stats.min.toLocaleString()} {VOLUME_UNIT}</div>
         </div>
       </Stack>
 
@@ -544,13 +590,12 @@ function EnergyWater() {
         <div className="mt-8 mx-20 bg-card rounded-md">
           <TableContainer>
             <Table key={colorMode} variant="simple">
-              <TableCaption sx={{ color: tulisanColor }}>Energy Water - Trane 1 & 2</TableCaption>
+              <TableCaption sx={{ color: tulisanColor }}>Energy Water - {selectedMeter.label}</TableCaption>
               <Thead>
                 <Tr>
                   <Th sx={{ color: tulisanColor }}>No</Th>
                   <Th sx={{ color: tulisanColor }}>Periode</Th>
-                  <Th sx={{ color: tulisanColor }}>Trane1 ({VOLUME_UNIT})</Th>
-                  <Th sx={{ color: tulisanColor }}>Trane2 ({VOLUME_UNIT})</Th>
+                  <Th sx={{ color: tulisanColor }}>{selectedMeter.label} ({VOLUME_UNIT})</Th>
                   <Th sx={{ color: tulisanColor }}>Average ({VOLUME_UNIT})</Th>
                 </Tr>
               </Thead>
