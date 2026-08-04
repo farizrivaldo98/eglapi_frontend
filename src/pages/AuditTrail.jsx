@@ -63,7 +63,7 @@ function parseDetail(detailStr) {
         <div style={{ fontSize: 12, lineHeight: 1.7 }}>
           {cleanArea && (
             <div>
-              <span style={{ fontWeight: 600 }}>Ruang: </span>
+              <span style={{ fontWeight: 600 }}>Area: </span>
               {cleanArea}
             </div>
           )}

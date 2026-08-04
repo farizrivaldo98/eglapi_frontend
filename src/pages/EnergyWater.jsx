@@ -176,7 +176,7 @@ function EnergyWater() {
         start: datePickerStart,
         finish: datePickerFinish,
         period: periodType,
-        meter: selectedMeterKey,
+        area: selectedMeterKey,
       });
       // ─────────────────────────────────────────────────────────
     } catch (err) {
@@ -297,7 +297,7 @@ function EnergyWater() {
     autoTable(doc, {
       head: [["", `${selectedMeter.label} (${VOLUME_UNIT})`]],
       body: [
-        ["Avg (garis rata-rata)", String(selectedStats.avg)],
+        ["Avg", String(selectedStats.avg)],
         ["Max", String(selectedStats.max)],
         ["Min", String(selectedStats.min)],
       ],
@@ -571,7 +571,7 @@ function EnergyWater() {
 
       <Stack className="flex flex-row justify-center mb-4 flex-wrap" direction="row" spacing={4} align="center">
         <div className="mt-3">
-          <div className="ml-16 text-text">Avg {selectedMeter.label} = {selectedStats.avg.toLocaleString()} {VOLUME_UNIT} (garis rata-rata)</div>
+          <div className="ml-16 text-text">Avg {selectedMeter.label} = {selectedStats.avg.toLocaleString()} {VOLUME_UNIT}</div>
           <div className="ml-16 text-text">Max {selectedMeter.label} = {selectedStats.max.toLocaleString()} {VOLUME_UNIT}</div>
           <div className="ml-16 text-text">Min {selectedMeter.label} = {selectedStats.min.toLocaleString()} {VOLUME_UNIT}</div>
         </div>
