@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
 import {
   Select,
@@ -54,16 +54,19 @@ function EnergyWater() {
   const [datePickerStart, setDatePickerStart] = useState();
   const [datePickerFinish, setDatePickerFinish] = useState();
 
-  // [{ id, label, trane1, trane2, average }] - hasil delta totalizer per
-  // periode, sudah digabung semua meter + average dari backend. Ganti
-  // dropdown meter / checkbox rata-rata gak perlu fetch ulang, tinggal
-  // filter ulang array ini di frontend.
+  // [{ id, label, value }] - hasil delta totalizer per periode, HANYA buat
+  // meter yang lagi dipilih (backend sekarang query 1 tabel aja per meter,
+  // gak lagi Trane1+Trane2 sekaligus). Ganti dropdown meter = fetch baru.
   const [mergedData, setMergedData] = useState([]);
 
   // Meter yang lagi ditampilkan di grafik & tabel.
   const [selectedMeterKey, setSelectedMeterKey] = useState(METERS[0].key);
   // Toggle garis rata-rata di grafik.
   const [showAverageLine, setShowAverageLine] = useState(true);
+
+  // Nandain udah pernah submit valid sekali - dipakai buat auto re-fetch
+  // pas dropdown meter diganti, tanpa nembak API pas awal mount.
+  const hasFetchedRef = useRef(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -119,19 +122,22 @@ function EnergyWater() {
 
   const selectedMeter = METERS.find((m) => m.key === selectedMeterKey) || METERS[0];
 
-  // Data grafik: garis meter yang lagi dipilih + garis rata-rata, dihitung
-  // dari mergedData yang udah ke-fetch.
+  // Garis fluktuatif: langsung dari mergedData (udah spesifik 1 meter dari backend).
   const selectedChartData = useMemo(
-    () => mergedData.map((r, idx) => ({ x: idx, y: Number(r[selectedMeterKey]) || 0, label: r.label })),
-    [mergedData, selectedMeterKey]
-  );
-  const avgChartData = useMemo(
-    () => mergedData.map((r, idx) => ({ x: idx, y: Number(r.average) || 0, label: r.label })),
+    () => mergedData.map((r, idx) => ({ x: idx, y: Number(r.value) || 0, label: r.label })),
     [mergedData]
   );
 
-  const selectedStats = useMemo(() => calcStats(mergedData, selectedMeterKey), [mergedData, selectedMeterKey]);
-  const avgStats = useMemo(() => calcStats(mergedData, "average"), [mergedData]);
+  // Avg/Max/Min dari data yang ke-tarik (rentang start-finish yang diklik).
+  const selectedStats = useMemo(() => calcStats(mergedData, "value"), [mergedData]);
+
+  // Garis rata-rata = GARIS LURUS di nilai selectedStats.avg, dibentang di
+  // sepanjang sumbu-x yang sama kayak data fluktuatifnya (bukan data
+  // per-titik dari backend, murni hasil rata-rata data yang ditarik ini).
+  const avgChartData = useMemo(
+    () => mergedData.map((r, idx) => ({ x: idx, y: selectedStats.avg, label: r.label })),
+    [mergedData, selectedStats.avg]
+  );
 
   // ── DIMODIFIKASI: tambah logAuditAction setelah fetch berhasil ──
   const getSubmit = async () => {
@@ -139,6 +145,7 @@ function EnergyWater() {
       setError("Pilih tanggal mulai dan selesai dulu");
       return;
     }
+    hasFetchedRef.current = true; // dari sini, ganti dropdown meter auto re-fetch
     setLoading(true);
     setError(null);
 
@@ -150,6 +157,7 @@ function EnergyWater() {
             start: datePickerStart.replace("T", " "),
             finish: datePickerFinish.replace("T", " "),
             period: periodType,
+            meter: selectedMeterKey, // backend cuma query 1 tabel sesuai ini
           },
         }
       );
@@ -183,6 +191,16 @@ function EnergyWater() {
   };
   // ────────────────────────────────────────────────────────────
 
+  // Ganti dropdown meter (Trane 1 / Trane 2 / ...) -> tarik ulang data
+  // KHUSUS meter itu aja, pakai start-finish yang sama kayak submit
+  // terakhir. Gak jalan kalau belum pernah submit valid (hasFetchedRef).
+  useEffect(() => {
+    if (hasFetchedRef.current) {
+      getSubmit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMeterKey]);
+
   const datePickStart = (e) => {
     setDatePickerStart(e.target.value);
   };
@@ -206,7 +224,7 @@ function EnergyWater() {
     if (mergedData.length === 0) {
       return (
         <Tr>
-          <Td colSpan={4} textAlign="center" display="table-cell">
+          <Td colSpan={3} textAlign="center" display="table-cell">
             No data available
           </Td>
         </Tr>
@@ -217,8 +235,7 @@ function EnergyWater() {
       <Tr key={row.id}>
         <Td>{row.id}</Td>
         <Td>{row.label}</Td>
-        <Td>{row[selectedMeterKey]}</Td>
-        <Td>{row.average}</Td>
+        <Td>{row.value}</Td>
       </Tr>
     ));
   };
@@ -241,8 +258,7 @@ function EnergyWater() {
     const columns = [
       { header: "No", dataKey: "id" },
       { header: "Periode", dataKey: "label" },
-      { header: `${selectedMeter.label} (${VOLUME_UNIT})`, dataKey: selectedMeterKey },
-      { header: `Average (${VOLUME_UNIT})`, dataKey: "average" },
+      { header: `${selectedMeter.label} (${VOLUME_UNIT})`, dataKey: "value" },
     ];
 
     const drawHeader = () => {
@@ -279,11 +295,11 @@ function EnergyWater() {
     doc.setFont("helvetica", "normal");
 
     autoTable(doc, {
-      head: [["", `${selectedMeter.label} (${VOLUME_UNIT})`, `Average (${VOLUME_UNIT})`]],
+      head: [["", `${selectedMeter.label} (${VOLUME_UNIT})`]],
       body: [
-        ["Avg", String(selectedStats.avg), String(avgStats.avg)],
-        ["Max", String(selectedStats.max), String(avgStats.max)],
-        ["Min", String(selectedStats.min), String(avgStats.min)],
+        ["Avg (garis rata-rata)", String(selectedStats.avg)],
+        ["Max", String(selectedStats.max)],
+        ["Min", String(selectedStats.min)],
       ],
       startY: 34,
       margin: { left: 10, right: 10 },
@@ -296,9 +312,8 @@ function EnergyWater() {
         fontSize: 8,
       },
       columnStyles: {
-        0: { fontStyle: "bold", halign: "center", fillColor: [235, 245, 255], textColor: [0, 0, 100], cellWidth: 30 },
-        1: { textColor: [0, 0, 139], cellWidth: 70 },
-        2: { textColor: [0, 0, 139], cellWidth: 70 },
+        0: { fontStyle: "bold", halign: "center", fillColor: [235, 245, 255], textColor: [0, 0, 100], cellWidth: 45 },
+        1: { textColor: [0, 0, 139], cellWidth: 60 },
       },
       theme: "grid",
       tableLineColor: [200, 200, 200],
@@ -370,7 +385,7 @@ function EnergyWater() {
     if (showAverageLine) {
       series.push({
         type: "line",
-        name: "Average",
+        name: "Rata-rata",
         showInLegend: true,
         xValueFormatString: "",
         yValueFormatString: "",
@@ -556,14 +571,9 @@ function EnergyWater() {
 
       <Stack className="flex flex-row justify-center mb-4 flex-wrap" direction="row" spacing={4} align="center">
         <div className="mt-3">
-          <div className="ml-16 text-text">Avg {selectedMeter.label} = {selectedStats.avg.toLocaleString()} {VOLUME_UNIT}</div>
+          <div className="ml-16 text-text">Avg {selectedMeter.label} = {selectedStats.avg.toLocaleString()} {VOLUME_UNIT} (garis rata-rata)</div>
           <div className="ml-16 text-text">Max {selectedMeter.label} = {selectedStats.max.toLocaleString()} {VOLUME_UNIT}</div>
           <div className="ml-16 text-text">Min {selectedMeter.label} = {selectedStats.min.toLocaleString()} {VOLUME_UNIT}</div>
-        </div>
-        <div className="mt-3">
-          <div className="ml-16 text-text">Avg Average = {avgStats.avg.toLocaleString()} {VOLUME_UNIT}</div>
-          <div className="ml-16 text-text">Max Average = {avgStats.max.toLocaleString()} {VOLUME_UNIT}</div>
-          <div className="ml-16 text-text">Min Average = {avgStats.min.toLocaleString()} {VOLUME_UNIT}</div>
         </div>
       </Stack>
 
@@ -596,7 +606,6 @@ function EnergyWater() {
                   <Th sx={{ color: tulisanColor }}>No</Th>
                   <Th sx={{ color: tulisanColor }}>Periode</Th>
                   <Th sx={{ color: tulisanColor }}>{selectedMeter.label} ({VOLUME_UNIT})</Th>
-                  <Th sx={{ color: tulisanColor }}>Average ({VOLUME_UNIT})</Th>
                 </Tr>
               </Thead>
               <Tbody>{renderTable()}</Tbody>
