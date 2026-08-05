@@ -108,15 +108,23 @@ function EnergyWater() {
   }, []);
 
   const calcStats = (rows, key) => {
-    if (!rows || rows.length === 0) return { avg: 0, max: 0, min: 0 };
+    if (!rows || rows.length === 0) return { avg: 0, max: 0, min: 0, total: 0 };
     const vals = rows.map((r) => Number(r[key]) || 0);
     const max = Math.max(...vals);
     const min = Math.min(...vals);
-    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const sum = vals.reduce((a, b) => a + b, 0);
+    const avg = sum / vals.length;
     return {
       avg: Number(avg.toFixed(2)),
       max: Number(max.toFixed(2)),
       min: Number(min.toFixed(2)),
+      // Total konsumsi sepanjang rentang Start-Finish Date yang lagi ditarik.
+      // Ini murni SUM dari seluruh baris hasil fetch, jadi otomatis ngikutin
+      // Periode yang dipilih di atas: pilih "Per Jam" + rentang 1 hari -> ini
+      // jadi total harian; "Per Hari" + rentang 1 bulan -> total bulanan;
+      // "Per Bulan" + rentang 1 tahun -> total tahunan. Gak perlu opsi
+      // Periode baru, tinggal atur Start/Finish Date-nya.
+      total: Number(sum.toFixed(2)),
     };
   };
 
@@ -297,6 +305,7 @@ function EnergyWater() {
     autoTable(doc, {
       head: [["", `${selectedMeter.label} (${VOLUME_UNIT})`]],
       body: [
+        ["Total", String(selectedStats.total)],
         ["Avg", String(selectedStats.avg)],
         ["Max", String(selectedStats.max)],
         ["Min", String(selectedStats.min)],
@@ -573,6 +582,7 @@ function EnergyWater() {
 
       <Stack className="flex flex-row justify-center mb-4 flex-wrap" direction="row" spacing={4} align="center">
         <div className="mt-3">
+          <div className="ml-16 text-text font-semibold">Total {selectedMeter.label} = {selectedStats.total.toLocaleString()} {VOLUME_UNIT}</div>
           <div className="ml-16 text-text">Avg {selectedMeter.label} = {selectedStats.avg.toLocaleString()} {VOLUME_UNIT}</div>
           <div className="ml-16 text-text">Max {selectedMeter.label} = {selectedStats.max.toLocaleString()} {VOLUME_UNIT}</div>
           <div className="ml-16 text-text">Min {selectedMeter.label} = {selectedStats.min.toLocaleString()} {VOLUME_UNIT}</div>
