@@ -1304,7 +1304,7 @@ function EnergyPower() {
   return (
     <div>
       <Tabs variant="enclosed" colorScheme="blue" isFitted>
-        <TabList>
+        <TabList className="w-full lg:w-1/2" display="flex">
           <Tab>Total Energy</Tab>
           <Tab>Analisa Parameter Listrik</Tab>
         </TabList>
