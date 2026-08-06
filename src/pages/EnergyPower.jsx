@@ -512,7 +512,7 @@ function TotalEnergyPanel() {
               _hover: { borderColor: hoverBorderColor },
             }}
           >
-            <option value="hourly">Per Menit</option>
+            <option value="hourly">Per Jam</option>
             <option value="daily">Per Hari</option>
             <option value="monthly">Per Bulan</option>
           </Select>
