@@ -57,7 +57,7 @@ const METERS = [
   { key: "uty1", label: "PP UTY1", colorLight: "#1e90ff", colorDark: "#00bfff" },
   { key: "lapi1", label: "PP LAPI1", colorLight: "#32cd32", colorDark: "#00ff00" },
     { key: "SDP2_Pro1", label: "SDP2_Pro1", colorLight: "#ceff1e", colorDark: "#ceff1e" },
-  { key: "SDP1_OFC1", label: "SDP1_OFC1", colorLight: "#cd32b8", colorDark: "#cd32b8" },
+  { key: "SDP1_Ofc1", label: "SDP1_Ofc1", colorLight: "#cd32b8", colorDark: "#cd32b8" },
 ];
 
 // Parameter listrik instan (data_format_0..3) - BUKAN totalizer, jadi
