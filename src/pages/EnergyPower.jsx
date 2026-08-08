@@ -19,9 +19,9 @@ function EnergyPower() {
     <div>
       <Tabs variant="enclosed" colorScheme="blue" isFitted>
         <TabList className="w-full lg:w-3/4" display="flex">
-          <Tab>Total Energy</Tab>
+          {/* <Tab>Total Energy</Tab> */}
           <Tab>Analisa Parameter Listrik</Tab>
-          <Tab>Perbandingan Meter</Tab>
+          <Tab>Total Enegy Meter</Tab>
         </TabList>
         <TabPanels>
           <TabPanel px={0}>
