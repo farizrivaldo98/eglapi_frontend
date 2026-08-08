@@ -556,6 +556,12 @@ function PerbandinganMeter() {
     });
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PENANDA LOGIC: Cek apakah user hanya memilih 1 meter.
+  // Jika iya, kita akan sembunyikan donut chart, summary, dan table.
+  // ─────────────────────────────────────────────────────────────────────────────
+  const isSingleMeter = selectedMeterKeys.length === 1;
+
   return (
     <div>
       <div className="flex flex-row justify-center space-x-4 my-6 flex-wrap xl:flex-nowrap">
@@ -637,9 +643,7 @@ function PerbandinganMeter() {
         </div>
       </div>
 
-      {/* Pilih meter: "Semua Meter" (keseluruhan) atau uncheck satu-satu
-          buat bandingin beberapa unit aja. Checkbox di-generate dari array
-          METERS - otomatis nambah kalau METERS nambah entry baru. */}
+      {/* Pilih meter: "Semua Meter" (keseluruhan) atau uncheck satu-satu */}
       <div className="flex flex-col items-center gap-2 mt-2">
         <Checkbox
           isChecked={allSelected}
@@ -681,10 +685,10 @@ function PerbandinganMeter() {
         </Checkbox>
       </div>
 
-      {/* Grafik garis perbandingan + doughnut kontribusi, berdampingan di
-          layar besar, ditumpuk di layar kecil. */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 my-4 mx-4">
-        <div className="xl:col-span-2 bg-card rounded-lg p-1 shadow-lg overflow-x-auto">
+      {/* Grafik garis perbandingan + doughnut kontribusi.
+          Jika isSingleMeter = true, kolom grid disatukan dan chart doughnut dihilangkan. */}
+      <div className={`grid grid-cols-1 gap-4 my-4 mx-4 ${!isSingleMeter ? "xl:grid-cols-3" : ""}`}>
+        <div className={`${!isSingleMeter ? "xl:col-span-2" : ""} bg-card rounded-lg p-1 shadow-lg overflow-x-auto`}>
           {loading ? (
             <div className="flex flex-col items-center py-10">
               <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" />
@@ -695,21 +699,25 @@ function PerbandinganMeter() {
             <CanvasJSChart options={lineChartOptions} />
           )}
         </div>
-        <div className="bg-card rounded-lg p-1 shadow-lg overflow-x-auto">
-          {loading ? (
-            <div className="flex flex-col items-center py-10">
-              <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="lg" />
-            </div>
-          ) : error && Object.keys(comparisonData).length === 0 ? (
-            <div className="text-red-500 flex flex-col items-center py-10">No available data</div>
-          ) : (
-            <CanvasJSChart options={pieChartOptions} />
-          )}
-        </div>
+        
+        {/* Render Doughnut Chart HANYA JIKA BUKAN single meter */}
+        {!isSingleMeter && (
+          <div className="bg-card rounded-lg p-1 shadow-lg overflow-x-auto">
+            {loading ? (
+              <div className="flex flex-col items-center py-10">
+                <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="lg" />
+              </div>
+            ) : error && Object.keys(comparisonData).length === 0 ? (
+              <div className="text-red-500 flex flex-col items-center py-10">No available data</div>
+            ) : (
+              <CanvasJSChart options={pieChartOptions} />
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Ranking + insight otomatis */}
-      {insight && (
+      {/* Ranking + insight otomatis, HANYA JIKA BUKAN single meter */}
+      {!isSingleMeter && insight && (
         <div className="mx-4 xl:mx-20 mb-6 bg-card rounded-lg p-4 shadow-lg">
           <h5 className="text-text font-semibold mb-3">Ringkasan &amp; Analisa</h5>
           <p className="text-text mb-3">
@@ -743,62 +751,67 @@ function PerbandinganMeter() {
         </div>
       )}
 
-      <br />
-      <Stack className="flex flex-row justify-center gap-2" direction="row" spacing={2} align="center">
-        <div className="mt-2">
-          <Select value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))} width="80px">
-            <option value={5}>5</option>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={40}>40</option>
-            <option value={60}>60</option>
-            <option value={100}>100</option>
-          </Select>
-        </div>
-        <div>
-          <Button className="w-40 mt-2" colorScheme="red" onClick={() => setIsTableVisible(!isTableVisible)}>
-            {isTableVisible ? "Hide All Data" : "Show All Data"}
-          </Button>
-        </div>
-      </Stack>
+      {/* Wrapper Table Section HANYA JIKA BUKAN single meter */}
+      {!isSingleMeter && (
+        <>
+          <br />
+          <Stack className="flex flex-row justify-center gap-2" direction="row" spacing={2} align="center">
+            <div className="mt-2">
+              <Select value={rowsPerPage} onChange={(e) => setRowsPerPage(Number(e.target.value))} width="80px">
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={40}>40</option>
+                <option value={60}>60</option>
+                <option value={100}>100</option>
+              </Select>
+            </div>
+            <div>
+              <Button className="w-40 mt-2" colorScheme="red" onClick={() => setIsTableVisible(!isTableVisible)}>
+                {isTableVisible ? "Hide All Data" : "Show All Data"}
+              </Button>
+            </div>
+          </Stack>
 
-      {isTableVisible && (
-        <div className="mt-8 mx-4 xl:mx-20 bg-card rounded-md">
-          <TableContainer>
-            <Table key={colorMode} variant="simple">
-              <TableCaption sx={{ color: tulisanColor }}>Perbandingan Meter</TableCaption>
-              <Thead>
-                <Tr>
-                  <Th sx={{ color: tulisanColor }}>No</Th>
-                  <Th sx={{ color: tulisanColor }}>Periode</Th>
-                  {selectedMeterKeys.map((key) => (
-                    <Th key={key} sx={{ color: tulisanColor }}>
-                      {METERS.find((m) => m.key === key)?.label} ({selectedUnit.label})
-                    </Th>
-                  ))}
-                </Tr>
-              </Thead>
-              <Tbody>{renderTable()}</Tbody>
-            </Table>
-          </TableContainer>
-        </div>
+          {isTableVisible && (
+            <div className="mt-8 mx-4 xl:mx-20 bg-card rounded-md">
+              <TableContainer>
+                <Table key={colorMode} variant="simple">
+                  <TableCaption sx={{ color: tulisanColor }}>Perbandingan Meter</TableCaption>
+                  <Thead>
+                    <Tr>
+                      <Th sx={{ color: tulisanColor }}>No</Th>
+                      <Th sx={{ color: tulisanColor }}>Periode</Th>
+                      {selectedMeterKeys.map((key) => (
+                        <Th key={key} sx={{ color: tulisanColor }}>
+                          {METERS.find((m) => m.key === key)?.label} ({selectedUnit.label})
+                        </Th>
+                      ))}
+                    </Tr>
+                  </Thead>
+                  <Tbody>{renderTable()}</Tbody>
+                </Table>
+              </TableContainer>
+            </div>
+          )}
+
+          <div className="flex justify-center items-center my-4 gap-4">
+            <Button onClick={handlePrevPage} isDisabled={currentPage === 1} colorScheme="blue">
+              Previous
+            </Button>
+            <span className="text-text">
+              Page {currentPage} of {Math.max(Math.ceil(combinedRows.length / rowsPerPage), 1)}
+            </span>
+            <Button
+              onClick={handleNextPage}
+              isDisabled={currentPage === Math.max(Math.ceil(combinedRows.length / rowsPerPage), 1)}
+              colorScheme="blue"
+            >
+              Next
+            </Button>
+          </div>
+        </>
       )}
-
-      <div className="flex justify-center items-center my-4 gap-4">
-        <Button onClick={handlePrevPage} isDisabled={currentPage === 1} colorScheme="blue">
-          Previous
-        </Button>
-        <span className="text-text">
-          Page {currentPage} of {Math.max(Math.ceil(combinedRows.length / rowsPerPage), 1)}
-        </span>
-        <Button
-          onClick={handleNextPage}
-          isDisabled={currentPage === Math.max(Math.ceil(combinedRows.length / rowsPerPage), 1)}
-          colorScheme="blue"
-        >
-          Next
-        </Button>
-      </div>
     </div>
   );
 }
