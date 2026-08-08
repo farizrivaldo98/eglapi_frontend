@@ -1,3 +1,10 @@
+// ════════════════════════════════════════════════════════════════════════
+// TAB PERBANDINGAN WATER (multi-meter comparison)
+//
+// Diadaptasi dari PerbandinganMeter.jsx (Power) ke sistem Water.
+// Mengambil data dari endpoint getEnergyWaterHistorical untuk semua 
+// meter yang dipilih secara paralel.
+// ════════════════════════════════════════════════════════════════════════
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSelector } from "react-redux";
 import {
@@ -27,8 +34,6 @@ import logo from "../assets/logolapi.png";
 var CanvasJS = CanvasJSReact.CanvasJS;
 var CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
-// Satuan volume flow meter Trane1/Trane2 - ganti di sini aja kalau ternyata
-// bukan m³ (misal liter), gak perlu ubah di banyak tempat.
 const VOLUME_UNIT = "m³";
 
 const PERIOD_LABELS = {
@@ -37,35 +42,20 @@ const PERIOD_LABELS = {
   monthly: "Per Bulan",
 };
 
-// Daftar meter yang bisa dipilih di dropdown. Backend (getEnergyWaterHistorical)
-// saat ini balikin tiap row dengan kolom trane1 & trane2 (lihat
-// mergeEnergyWaterMeters di databaseControllers.js). Kalau nanti nambah meter
-// baru (trane3, dst), tinggal tambah entry di sini pakai `key` yang sama
-// dengan nama kolom dari backend - dropdown, chart, tabel, dan PDF export
-// otomatis ikut, gak perlu ubah komponen ini lagi.
 const METERS = [
   { key: "trane1", label: "Train 1", colorLight: "#1e90ff", colorDark: "#00bfff" },
   { key: "trane2", label: "Train 2", colorLight: "#32cd32", colorDark: "#00ff00" },
-  // { key: "trane3", label: "Trane 3", colorLight: "#ff8c00", colorDark: "#ffa500" },
 ];
 
-function EnergyWater() {
+function PerbandinganWater() {
   const [periodType, setPeriodType] = useState("hourly");
   const [datePickerStart, setDatePickerStart] = useState();
   const [datePickerFinish, setDatePickerFinish] = useState();
 
-  // [{ id, label, value }] - hasil delta totalizer per periode, HANYA buat
-  // meter yang lagi dipilih (backend sekarang query 1 tabel aja per meter,
-  // gak lagi Trane1+Trane2 sekaligus). Ganti dropdown meter = fetch baru.
-  const [mergedData, setMergedData] = useState([]);
+  // Default: semua meter terpilih
+  const [selectedMeterKeys, setSelectedMeterKeys] = useState(METERS.map((m) => m.key));
 
-  // Meter yang lagi ditampilkan di grafik & tabel.
-  const [selectedMeterKey, setSelectedMeterKey] = useState(METERS[0].key);
-  // Toggle garis rata-rata di grafik.
-  const [showAverageLine, setShowAverageLine] = useState(true);
-
-  // Nandain udah pernah submit valid sekali - dipakai buat auto re-fetch
-  // pas dropdown meter diganti, tanpa nembak API pas awal mount.
+  const [comparisonData, setComparisonData] = useState({});
   const hasFetchedRef = useRef(false);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -76,18 +66,9 @@ function EnergyWater() {
   const [error, setError] = useState(null);
 
   const { colorMode } = useColorMode();
-  const borderColor = useColorModeValue(
-    "rgba(var(--color-border))",
-    "rgba(var(--color-border))"
-  );
-  const tulisanColor = useColorModeValue(
-    "rgba(var(--color-text))",
-    "rgba(var(--color-text))"
-  );
-  const hoverBorderColor = useColorModeValue(
-    "rgba(var(--color-border2))",
-    "rgba(var(--color-border2))"
-  );
+  const borderColor = useColorModeValue("rgba(var(--color-border))", "rgba(var(--color-border))");
+  const tulisanColor = useColorModeValue("rgba(var(--color-text))", "rgba(var(--color-text))");
+  const hoverBorderColor = useColorModeValue("rgba(var(--color-border2))", "rgba(var(--color-border2))");
 
   const [isDarkMode, setIsDarkMode] = useState(
     document.documentElement.getAttribute("data-theme") === "dark"
@@ -107,88 +88,66 @@ function EnergyWater() {
     return () => observer.disconnect();
   }, []);
 
-  const calcStats = (rows, key) => {
-    if (!rows || rows.length === 0) return { avg: 0, max: 0, min: 0, total: 0 };
-    const vals = rows.map((r) => Number(r[key]) || 0);
-    const max = Math.max(...vals);
-    const min = Math.min(...vals);
-    const sum = vals.reduce((a, b) => a + b, 0);
-    const avg = sum / vals.length;
-    return {
-      avg: Number(avg.toFixed(2)),
-      max: Number(max.toFixed(2)),
-      min: Number(min.toFixed(2)),
-      // Total konsumsi sepanjang rentang Start-Finish Date yang lagi ditarik.
-      // Ini murni SUM dari seluruh baris hasil fetch, jadi otomatis ngikutin
-      // Periode yang dipilih di atas: pilih "Per Jam" + rentang 1 hari -> ini
-      // jadi total harian; "Per Hari" + rentang 1 bulan -> total bulanan;
-      // "Per Bulan" + rentang 1 tahun -> total tahunan. Gak perlu opsi
-      // Periode baru, tinggal atur Start/Finish Date-nya.
-      total: Number(sum.toFixed(2)),
-    };
+  const allSelected = selectedMeterKeys.length === METERS.length;
+
+  const toggleMeter = (key) => {
+    setSelectedMeterKeys((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  };
+  const toggleSelectAll = () => {
+    setSelectedMeterKeys((prev) => (prev.length === METERS.length ? [] : METERS.map((m) => m.key)));
   };
 
-  const selectedMeter = METERS.find((m) => m.key === selectedMeterKey) || METERS[0];
-
-  // Garis fluktuatif: langsung dari mergedData (udah spesifik 1 meter dari backend).
-  const selectedChartData = useMemo(
-    () => mergedData.map((r, idx) => ({ x: idx, y: Number(r.value) || 0, label: r.label })),
-    [mergedData]
-  );
-
-  // Avg/Max/Min dari data yang ke-tarik (rentang start-finish yang diklik).
-  const selectedStats = useMemo(() => calcStats(mergedData, "value"), [mergedData]);
-
-  // Garis rata-rata = GARIS LURUS di nilai selectedStats.avg, dibentang di
-  // sepanjang sumbu-x yang sama kayak data fluktuatifnya (bukan data
-  // per-titik dari backend, murni hasil rata-rata data yang ditarik ini).
-  const avgChartData = useMemo(
-    () => mergedData.map((r, idx) => ({ x: idx, y: selectedStats.avg, label: r.label })),
-    [mergedData, selectedStats.avg]
-  );
-
-  // ── DIMODIFIKASI: tambah logAuditAction setelah fetch berhasil ──
   const getSubmit = async () => {
     if (!datePickerStart || !datePickerFinish) {
       setError("Pilih tanggal mulai dan selesai dulu");
       return;
     }
-    hasFetchedRef.current = true; // dari sini, ganti dropdown meter auto re-fetch
+    if (selectedMeterKeys.length === 0) {
+      setError("Pilih minimal 1 meter untuk dibandingkan");
+      return;
+    }
+    hasFetchedRef.current = true;
     setLoading(true);
     setError(null);
 
     try {
-      const response = await axios.get(
-        "http://10.163.0.66:8002/part/getEnergyWaterHistorical",
-        {
-          params: {
-            start: datePickerStart.replace("T", " "),
-            finish: datePickerFinish.replace("T", " "),
-            period: periodType,
-            meter: selectedMeterKey, // backend cuma query 1 tabel sesuai ini
-          },
-        }
+      const results = await Promise.all(
+        selectedMeterKeys.map((key) =>
+          axios
+            .get("http://10.163.0.66:8002/part/getEnergyWaterHistorical", {
+              params: {
+                start: datePickerStart.replace("T", " "),
+                finish: datePickerFinish.replace("T", " "),
+                period: periodType,
+                meter: key,
+              },
+            })
+            .then((res) => ({ key, rows: res.data.data || [] }))
+            .catch(() => ({ key, rows: [] }))
+        )
       );
 
-      const rows = response.data.data || [];
-      setMergedData(rows);
+      const dataMap = {};
+      results.forEach((r) => {
+        dataMap[r.key] = r.rows;
+      });
+      setComparisonData(dataMap);
       setCurrentPage(1);
       setIsTableVisible(true);
 
-      if (rows.length === 0) {
+      const totalRows = results.reduce((sum, r) => sum + r.rows.length, 0);
+      if (totalRows === 0) {
         setError("Tidak ada data pada rentang tanggal ini");
       }
 
-      // ── AUDIT: catat VIEW_ENERGY_WATER ─────────────────────
-      await logAuditAction("VIEW_ENERGY_WATER", {
+      await logAuditAction("VIEW_ENERGY_WATER_COMPARISON", {
         start: datePickerStart,
         finish: datePickerFinish,
         period: periodType,
-        area: selectedMeterKey,
+        area: selectedMeterKeys.join(","),
       });
-      // ─────────────────────────────────────────────────────────
     } catch (err) {
-      console.error("Error fetching data:", err);
+      console.error("Error fetching comparison data:", err);
       setError("Failed to fetch data. Please try again.");
     } finally {
       const delay = 800;
@@ -197,42 +156,206 @@ function EnergyWater() {
       }, delay);
     }
   };
-  // ────────────────────────────────────────────────────────────
 
-  // Ganti dropdown meter (Trane 1 / Trane 2 / ...) -> tarik ulang data
-  // KHUSUS meter itu aja, pakai start-finish yang sama kayak submit
-  // terakhir. Gak jalan kalau belum pernah submit valid (hasFetchedRef).
-  useEffect(() => {
-    if (hasFetchedRef.current) {
-      getSubmit();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMeterKey]);
+  const datePickStart = (e) => setDatePickerStart(e.target.value);
+  const datePickFinish = (e) => setDatePickerFinish(e.target.value);
 
-  const datePickStart = (e) => {
-    setDatePickerStart(e.target.value);
-  };
-  const datePickFinish = (e) => {
-    setDatePickerFinish(e.target.value);
-  };
+  // Statistik nilai Air (m³)
+  const meterStatsDisplay = useMemo(() => {
+    const stats = {};
+    selectedMeterKeys.forEach((key) => {
+      const rows = comparisonData[key] || [];
+      const vals = rows.map((r) => Number(r.value) || 0);
+      const total = vals.reduce((a, b) => a + b, 0);
+      
+      stats[key] = {
+        total: Number(total.toFixed(2)),
+        avg: vals.length ? Number((total / vals.length).toFixed(2)) : 0,
+        max: vals.length ? Number(Math.max(...vals).toFixed(2)) : 0,
+        min: vals.length ? Number(Math.min(...vals).toFixed(2)) : 0,
+        count: vals.length,
+      };
+    });
+    return stats;
+  }, [comparisonData, selectedMeterKeys]);
 
-  const handlePrevPage = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1));
-  };
-  const handleNextPage = () => {
-    setCurrentPage((prev) =>
-      Math.min(prev + 1, Math.max(Math.ceil(mergedData.length / rowsPerPage), 1))
-    );
-  };
+  const grandTotalDisplay = useMemo(
+    () => Number(Object.values(meterStatsDisplay).reduce((a, s) => a + s.total, 0).toFixed(2)),
+    [meterStatsDisplay]
+  );
+
+  const ranking = useMemo(() => {
+    return selectedMeterKeys
+      .map((key) => {
+        const meter = METERS.find((m) => m.key === key);
+        const total = meterStatsDisplay[key]?.total || 0;
+        const pct = grandTotalDisplay > 0 ? (total / grandTotalDisplay) * 100 : 0;
+        return {
+          key,
+          label: meter?.label || key,
+          color: (isDarkMode ? meter?.colorDark : meter?.colorLight) || "#888888",
+          totalDisplay: total,
+          pct: Number(pct.toFixed(2)),
+        };
+      })
+      .sort((a, b) => b.totalDisplay - a.totalDisplay);
+  }, [selectedMeterKeys, meterStatsDisplay, grandTotalDisplay, isDarkMode]);
+
+  const insight = useMemo(() => {
+    if (ranking.length === 0) return null;
+    return { top: ranking[0], bottom: ranking[ranking.length - 1], count: ranking.length };
+  }, [ranking]);
+
+  const unifiedLabels = useMemo(() => {
+    const labelSet = new Set();
+    selectedMeterKeys.forEach((key) => {
+      (comparisonData[key] || []).forEach((r) => {
+        if (r?.label) labelSet.add(r.label);
+      });
+    });
+    return Array.from(labelSet).sort((a, b) => {
+      const da = new Date(a).getTime();
+      const db = new Date(b).getTime();
+      if (!Number.isNaN(da) && !Number.isNaN(db)) return da - db;
+      return String(a).localeCompare(String(b));
+    });
+  }, [comparisonData, selectedMeterKeys]);
+
+  const rowsByLabelMap = useMemo(() => {
+    const map = {};
+    selectedMeterKeys.forEach((key) => {
+      const m = new Map();
+      (comparisonData[key] || []).forEach((r) => {
+        if (r?.label) m.set(r.label, r);
+      });
+      map[key] = m;
+    });
+    return map;
+  }, [comparisonData, selectedMeterKeys]);
+
+  const lineChartOptions = useMemo(() => {
+    const series = selectedMeterKeys.map((key) => {
+      const meter = METERS.find((m) => m.key === key);
+      const color = (isDarkMode ? meter?.colorDark : meter?.colorLight) || "#888888";
+      const byLabel = rowsByLabelMap[key];
+      const dataPoints = unifiedLabels.map((lbl, idx) => {
+        const r = byLabel?.get(lbl);
+        return {
+          x: idx,
+          y: r ? Number(Number(r.value).toFixed(2)) : null,
+          label: lbl,
+        };
+      });
+      return {
+        type: "line",
+        name: meter?.label || key,
+        showInLegend: true,
+        nullDataLineDashType: "dash",
+        color,
+        lineColor: color,
+        markerColor: color,
+        dataPoints,
+      };
+    });
+
+    return {
+      zoomEnabled: true,
+      theme: isDarkMode ? "dark2" : "light2",
+      backgroundColor: isDarkMode ? "#171717" : "#ffffff",
+      Margin: 8,
+      title: {
+        text: "Perbandingan Pemakaian Air Antar Meter",
+        fontColor: isDarkMode ? "white" : "black",
+        fontSize: 16,
+      },
+      subtitles: [
+        {
+          text: `${PERIOD_LABELS[periodType]} (${VOLUME_UNIT})`,
+          fontColor: isDarkMode ? "white" : "black",
+        },
+      ],
+      axisY: {
+        title: `Volume (${VOLUME_UNIT})`,
+        titleFontColor: isDarkMode ? "white" : "black",
+        gridColor: isDarkMode ? "#444" : "#bfbfbf",
+        labelFontColor: isDarkMode ? "white" : "black",
+        lineColor: isDarkMode ? "#d6d6d6" : "#474747",
+        tickColor: isDarkMode ? "#d6d6d6" : "#474747",
+      },
+      axisX: {
+        lineColor: isDarkMode ? "#d6d6d6" : "#474747",
+        labelFontColor: isDarkMode ? "white" : "black",
+        labelAngle: -30,
+        tickColor: isDarkMode ? "#d6d6d6" : "#474747",
+      },
+      legend: { fontColor: isDarkMode ? "white" : "black" },
+      toolTip: { shared: true },
+      data: series,
+    };
+  }, [selectedMeterKeys, unifiedLabels, rowsByLabelMap, isDarkMode, periodType]);
+
+  const pieChartOptions = useMemo(() => {
+    const dataPoints = ranking.map((r) => ({
+      y: r.pct,
+      label: r.label,
+      color: r.color,
+      indexLabel: `${r.label}: ${r.pct}%`,
+    }));
+
+    return {
+      theme: isDarkMode ? "dark2" : "light2",
+      backgroundColor: isDarkMode ? "#171717" : "#ffffff",
+      title: {
+        text: "Kontribusi Pemakaian per Meter",
+        fontColor: isDarkMode ? "white" : "black",
+        fontSize: 16,
+      },
+      subtitles: [
+        {
+          text: `Total gabungan = ${grandTotalDisplay.toLocaleString()} ${VOLUME_UNIT}`,
+          fontColor: isDarkMode ? "white" : "black",
+          fontSize: 11,
+        },
+      ],
+      toolTip: {
+        contentFormatter: (e) => `${e.entries[0].dataPoint.label}: ${e.entries[0].dataPoint.y}%`,
+      },
+      legend: { fontColor: isDarkMode ? "white" : "black", fontSize: 11 },
+      data: [
+        {
+          type: "doughnut",
+          showInLegend: true,
+          indexLabelFontColor: isDarkMode ? "white" : "black",
+          indexLabelFontSize: 10,
+          dataPoints,
+        },
+      ],
+    };
+  }, [ranking, grandTotalDisplay, isDarkMode]);
+
+  const combinedRows = useMemo(() => {
+    return unifiedLabels.map((lbl, idx) => {
+      const row = { id: idx + 1, label: lbl };
+      selectedMeterKeys.forEach((key) => {
+        const r = rowsByLabelMap[key]?.get(lbl);
+        row[key] = r ? Number(Number(r.value).toFixed(2)) : null;
+      });
+      return row;
+    });
+  }, [unifiedLabels, rowsByLabelMap, selectedMeterKeys]);
+
+  const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const handleNextPage = () =>
+    setCurrentPage((prev) => Math.min(prev + 1, Math.max(Math.ceil(combinedRows.length / rowsPerPage), 1)));
 
   const renderTable = () => {
     const startIndex = (currentPage - 1) * rowsPerPage;
-    const visibleData = mergedData.slice(startIndex, startIndex + rowsPerPage);
+    const visibleData = combinedRows.slice(startIndex, startIndex + rowsPerPage);
 
-    if (mergedData.length === 0) {
+    if (combinedRows.length === 0) {
       return (
         <Tr>
-          <Td colSpan={3} textAlign="center" display="table-cell">
+          <Td colSpan={selectedMeterKeys.length + 2} textAlign="center" display="table-cell">
             No data available
           </Td>
         </Tr>
@@ -243,12 +366,13 @@ function EnergyWater() {
       <Tr key={row.id}>
         <Td>{row.id}</Td>
         <Td>{row.label}</Td>
-        <Td>{row.value}</Td>
+        {selectedMeterKeys.map((key) => (
+          <Td key={key}>{row[key] ?? "-"}</Td>
+        ))}
       </Tr>
     ));
   };
 
-  // ── DIMODIFIKASI: tambah logAuditAction setelah export ──
   const exportToPDF = async () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -262,12 +386,6 @@ function EnergyWater() {
     const minutes = String(now.getMinutes()).padStart(2, "0");
     const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes}`;
     const fileSuffix = `${year}${month}${day}_${hours}${minutes}`;
-
-    const columns = [
-      { header: "No", dataKey: "id" },
-      { header: "Periode", dataKey: "label" },
-      { header: `${selectedMeter.label} (${VOLUME_UNIT})`, dataKey: "value" },
-    ];
 
     const drawHeader = () => {
       doc.addImage(logo, "JPEG", 10, 8, 25, 12);
@@ -299,17 +417,19 @@ function EnergyWater() {
     doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text(`Summary - ${PERIOD_LABELS[periodType]} (${selectedMeter.label})`, 14, 32);
+    doc.text(`Perbandingan Meter Air - ${PERIOD_LABELS[periodType]}`, 14, 32);
     doc.setFont("helvetica", "normal");
 
     autoTable(doc, {
-      head: [["", `${selectedMeter.label} (${VOLUME_UNIT})`]],
-      body: [
-        ["Total", String(selectedStats.total)],
-        ["Avg", String(selectedStats.avg)],
-        ["Max", String(selectedStats.max)],
-        ["Min", String(selectedStats.min)],
-      ],
+      head: [["Meter", `Total (${VOLUME_UNIT})`, `Avg (${VOLUME_UNIT})`, `Max (${VOLUME_UNIT})`, `Min (${VOLUME_UNIT})`, "% Kontribusi"]],
+      body: ranking.map((r) => [
+        r.label,
+        String(meterStatsDisplay[r.key]?.total ?? 0),
+        String(meterStatsDisplay[r.key]?.avg ?? 0),
+        String(meterStatsDisplay[r.key]?.max ?? 0),
+        String(meterStatsDisplay[r.key]?.min ?? 0),
+        `${r.pct}%`,
+      ]),
       startY: 34,
       margin: { left: 10, right: 10 },
       styles: { fontSize: 8, cellPadding: 2, halign: "center" },
@@ -321,8 +441,7 @@ function EnergyWater() {
         fontSize: 8,
       },
       columnStyles: {
-        0: { fontStyle: "bold", halign: "center", fillColor: [235, 245, 255], textColor: [0, 0, 100], cellWidth: 45 },
-        1: { textColor: [0, 0, 139], cellWidth: 60 },
+        0: { fontStyle: "bold", halign: "center", fillColor: [235, 245, 255], textColor: [0, 0, 100] },
       },
       theme: "grid",
       tableLineColor: [200, 200, 200],
@@ -330,12 +449,30 @@ function EnergyWater() {
     });
 
     const summaryFinalY = doc.lastAutoTable.finalY;
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      `Total Gabungan Semua Meter = ${grandTotalDisplay.toLocaleString()} ${VOLUME_UNIT}`,
+      14,
+      summaryFinalY + 5
+    );
+    doc.setFont("helvetica", "normal");
+
+    const columns = [
+      { header: "No", dataKey: "id" },
+      { header: "Periode", dataKey: "label" },
+      ...selectedMeterKeys.map((key) => ({
+        header: `${METERS.find((m) => m.key === key)?.label} (${VOLUME_UNIT})`,
+        dataKey: key,
+      })),
+    ];
 
     autoTable(doc, {
       columns,
-      body: mergedData,
-      startY: summaryFinalY + 5,
+      body: combinedRows,
+      startY: summaryFinalY + 10,
       margin: { top: 35, bottom: 20 },
+      styles: { fontSize: 7, cellPadding: 1.5 },
       didDrawPage: () => {
         const pageHeight = doc.internal.pageSize.height;
         const currentDocPage = doc.internal.getCurrentPageInfo().pageNumber;
@@ -343,7 +480,7 @@ function EnergyWater() {
 
         doc.setFontSize(9);
         doc.text(
-          `Generated by EMS System - Energy Water (${PERIOD_LABELS[periodType]} - ${selectedMeter.label}) - ${formattedDateTime} - ${userGlobal.username}`,
+          `Generated by EMS System - Perbandingan Meter Air (${PERIOD_LABELS[periodType]}) - ${formattedDateTime} - ${userGlobal.username}`,
           14,
           pageHeight - 10
         );
@@ -360,108 +497,15 @@ function EnergyWater() {
       doc.putTotalPages(totalPagesExp);
     }
 
-    doc.save(`table-data-EnergyWater-${selectedMeter.label.replace(/\s+/g, "")}-${fileSuffix}.pdf`);
+    doc.save(`table-data-EnergyWater-Perbandingan-${fileSuffix}.pdf`);
 
     await logAuditAction("EXPORT_PDF", {
       start: datePickerStart,
       finish: datePickerFinish,
       period: periodType,
-      area: selectedMeterKey,
+      area: selectedMeterKeys.join(","),
     });
   };
-  // ────────────────────────────────────────────────────────
-
-  // 1 chart, isinya garis meter yang lagi dipilih + garis rata-rata (opsional,
-  // ngikutin checkbox showAverageLine).
-  const chartOptions = useMemo(() => {
-    const meterColor = isDarkMode ? selectedMeter.colorDark : selectedMeter.colorLight;
-    const avgColor = isDarkMode ? "#ffa500" : "#ff8c00";
-
-    const series = [
-      {
-        type: "line",
-        name: selectedMeter.label,
-        showInLegend: true,
-        xValueFormatString: "",
-        yValueFormatString: "",
-        color: meterColor,
-        lineColor: meterColor,
-        markerColor: meterColor,
-        dataPoints: selectedChartData,
-      },
-    ];
-
-    if (showAverageLine) {
-      series.push({
-        type: "line",
-        name: "Rata-rata",
-        showInLegend: true,
-        xValueFormatString: "",
-        yValueFormatString: "",
-        color: avgColor,
-        lineColor: avgColor,
-        lineDashType: "dash",
-        markerSize: 0,
-        markerColor: avgColor,
-        dataPoints: avgChartData,
-      });
-    }
-
-    return {
-      zoomEnabled: true,
-      theme: isDarkMode ? "dark2" : "light2",
-      backgroundColor: isDarkMode ? "#171717" : "#ffffff",
-      Margin: 8,
-      title: {
-        text: `Pemakaian Air - ${selectedMeter.label}`,
-        fontColor: isDarkMode ? "white" : "black",
-        fontSize: 16,
-      },
-      subtitles: [
-        {
-          text: PERIOD_LABELS[periodType],
-          fontColor: isDarkMode ? "white" : "black",
-        },
-      ],
-      axisY: {
-        title: `Volume (${VOLUME_UNIT})`,
-        titleFontColor: isDarkMode ? "white" : "black",
-        gridColor: isDarkMode ? "#444" : "#bfbfbf",
-        labelFontColor: isDarkMode ? "white" : "black",
-        lineColor: isDarkMode ? "#d6d6d6" : "#474747",
-        tickColor: isDarkMode ? "#d6d6d6" : "#474747",
-        tickLength: 5,
-        tickThickness: 2,
-      },
-      axisX: {
-        lineColor: isDarkMode ? "#d6d6d6" : "#474747",
-        labelFontColor: isDarkMode ? "white" : "black",
-        labelAngle: -30,
-        tickLength: 5,
-        tickThickness: 2,
-        tickColor: isDarkMode ? "#d6d6d6" : "#474747",
-      },
-      legend: {
-        fontColor: isDarkMode ? "white" : "black",
-      },
-      toolTip: { shared: true },
-      data: series,
-    };
-  }, [selectedMeter, selectedChartData, avgChartData, showAverageLine, isDarkMode, periodType]);
-
-  const renderChart = () => (
-    <div className="w-full max-w-5xl mx-auto block bg-card rounded-lg p-1 shadow-lg overflow-x-auto">
-      {loading ? (
-        <div className="flex flex-col items-center py-10">
-          <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" />
-        </div>
-      ) : error && mergedData.length === 0 ? (
-        <div className="text-red-500 flex flex-col items-center py-10">No available data</div>
-      ) : (
-        <CanvasJSChart options={chartOptions} />
-      )}
-    </div>
-  );
 
   return (
     <div>
@@ -484,28 +528,6 @@ function EnergyWater() {
             <option value="hourly">Per Jam</option>
             <option value="daily">Per Hari</option>
             <option value="monthly">Per Bulan</option>
-          </Select>
-        </div>
-        <div>
-          <h5 className="mb-1">Meter</h5>
-          <Select
-            value={selectedMeterKey}
-            onChange={(e) => setSelectedMeterKey(e.target.value)}
-            size="md"
-            width="160px"
-            sx={{
-              border: "1px solid",
-              borderColor: borderColor,
-              borderRadius: "0.395rem",
-              background: "var(--color-background)",
-              _hover: { borderColor: hoverBorderColor },
-            }}
-          >
-            {METERS.map((m) => (
-              <option key={m.key} value={m.key}>
-                {m.label}
-              </option>
-            ))}
           </Select>
         </div>
         <div>
@@ -566,28 +588,92 @@ function EnergyWater() {
         </div>
       </div>
 
-      {/* Checkbox toggle garis rata-rata di grafik */}
-      <div className="flex justify-center mt-2">
+      <div className="flex flex-col items-center gap-2 mt-2">
         <Checkbox
-          isChecked={showAverageLine}
-          onChange={(e) => setShowAverageLine(e.target.checked)}
-          colorScheme="orange"
+          isChecked={allSelected}
+          isIndeterminate={selectedMeterKeys.length > 0 && !allSelected}
+          onChange={toggleSelectAll}
+          colorScheme="blue"
         >
-          <span className="text-text">Averages</span>
+          <span className="text-text font-semibold">Semua Meter</span>
         </Checkbox>
+        <div className="flex flex-wrap justify-center gap-4">
+          {METERS.map((m) => (
+            <Checkbox
+              key={m.key}
+              isChecked={selectedMeterKeys.includes(m.key)}
+              onChange={() => toggleMeter(m.key)}
+              colorScheme="blue"
+            >
+              <span
+                className="text-text"
+                style={{ borderBottom: `3px solid ${isDarkMode ? m.colorDark : m.colorLight}`, paddingBottom: 1 }}
+              >
+                {m.label}
+              </span>
+            </Checkbox>
+          ))}
+        </div>
       </div>
 
-      {/* 1 chart: garis meter yang dipilih + garis rata-rata (opsional) */}
-      <div className="my-4 mx-4">{renderChart()}</div>
-
-      <Stack className="flex flex-row justify-center mb-4 flex-wrap" direction="row" spacing={4} align="center">
-        <div className="mt-3">
-          <div className="ml-16 text-text font-semibold">Total {selectedMeter.label} = {selectedStats.total.toLocaleString()} {VOLUME_UNIT}</div>
-          <div className="ml-16 text-text">Avg {selectedMeter.label} = {selectedStats.avg.toLocaleString()} {VOLUME_UNIT}</div>
-          <div className="ml-16 text-text">Max {selectedMeter.label} = {selectedStats.max.toLocaleString()} {VOLUME_UNIT}</div>
-          <div className="ml-16 text-text">Min {selectedMeter.label} = {selectedStats.min.toLocaleString()} {VOLUME_UNIT}</div>
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 my-4 mx-4">
+        <div className="xl:col-span-2 bg-card rounded-lg p-1 shadow-lg overflow-x-auto">
+          {loading ? (
+            <div className="flex flex-col items-center py-10">
+              <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" />
+            </div>
+          ) : error && Object.keys(comparisonData).length === 0 ? (
+            <div className="text-red-500 flex flex-col items-center py-10">No available data</div>
+          ) : (
+            <CanvasJSChart options={lineChartOptions} />
+          )}
         </div>
-      </Stack>
+        <div className="bg-card rounded-lg p-1 shadow-lg overflow-x-auto">
+          {loading ? (
+            <div className="flex flex-col items-center py-10">
+              <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="lg" />
+            </div>
+          ) : error && Object.keys(comparisonData).length === 0 ? (
+            <div className="text-red-500 flex flex-col items-center py-10">No available data</div>
+          ) : (
+            <CanvasJSChart options={pieChartOptions} />
+          )}
+        </div>
+      </div>
+
+      {insight && (
+        <div className="mx-4 xl:mx-20 mb-6 bg-card rounded-lg p-4 shadow-lg">
+          <h5 className="text-text font-semibold mb-3">Ringkasan &amp; Analisa</h5>
+          <p className="text-text mb-3">
+            Dari {insight.count} meter yang dibandingkan pada periode ini, total pemakaian air gabungan adalah{" "}
+            <strong>
+              {grandTotalDisplay.toLocaleString()} {VOLUME_UNIT}
+            </strong>
+            . Penggunaan tertinggi adalah <strong>{insight.top.label}</strong> dengan kontribusi{" "}
+            <strong>{insight.top.pct}%</strong> ({insight.top.totalDisplay.toLocaleString()} {VOLUME_UNIT}),
+            sedangkan yang terendah adalah <strong>{insight.bottom.label}</strong> dengan{" "}
+            <strong>{insight.bottom.pct}%</strong> ({insight.bottom.totalDisplay.toLocaleString()} {VOLUME_UNIT}).
+          </p>
+          <div className="flex flex-col gap-2">
+            {ranking.map((r, idx) => (
+              <div key={r.key} className="flex items-center gap-3">
+                <span className="text-text w-6">{idx + 1}.</span>
+                <span className="text-text w-32 truncate">{r.label}</span>
+                <div
+                  className="flex-1 rounded h-4 overflow-hidden"
+                  style={{ background: isDarkMode ? "#333333" : "#e5e7eb" }}
+                >
+                  <div className="h-4 rounded" style={{ width: `${r.pct}%`, background: r.color }} />
+                </div>
+                <span className="text-text w-16 text-right">{r.pct}%</span>
+                <span className="text-text w-32 text-right">
+                  {r.totalDisplay.toLocaleString()} {VOLUME_UNIT}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <br />
       <Stack className="flex flex-row justify-center gap-2" direction="row" spacing={2} align="center">
@@ -609,15 +695,19 @@ function EnergyWater() {
       </Stack>
 
       {isTableVisible && (
-        <div className="mt-8 mx-20 bg-card rounded-md">
+        <div className="mt-8 mx-4 xl:mx-20 bg-card rounded-md">
           <TableContainer>
             <Table key={colorMode} variant="simple">
-              <TableCaption sx={{ color: tulisanColor }}>Energy Water - {selectedMeter.label}</TableCaption>
+              <TableCaption sx={{ color: tulisanColor }}>Perbandingan Meter Air</TableCaption>
               <Thead>
                 <Tr>
                   <Th sx={{ color: tulisanColor }}>No</Th>
                   <Th sx={{ color: tulisanColor }}>Periode</Th>
-                  <Th sx={{ color: tulisanColor }}>{selectedMeter.label} ({VOLUME_UNIT})</Th>
+                  {selectedMeterKeys.map((key) => (
+                    <Th key={key} sx={{ color: tulisanColor }}>
+                      {METERS.find((m) => m.key === key)?.label} ({VOLUME_UNIT})
+                    </Th>
+                  ))}
                 </Tr>
               </Thead>
               <Tbody>{renderTable()}</Tbody>
@@ -631,11 +721,11 @@ function EnergyWater() {
           Previous
         </Button>
         <span className="text-text">
-          Page {currentPage} of {Math.max(Math.ceil(mergedData.length / rowsPerPage), 1)}
+          Page {currentPage} of {Math.max(Math.ceil(combinedRows.length / rowsPerPage), 1)}
         </span>
         <Button
           onClick={handleNextPage}
-          isDisabled={currentPage === Math.max(Math.ceil(mergedData.length / rowsPerPage), 1)}
+          isDisabled={currentPage === Math.max(Math.ceil(combinedRows.length / rowsPerPage), 1)}
           colorScheme="blue"
         >
           Next
@@ -645,4 +735,4 @@ function EnergyWater() {
   );
 }
 
-export default EnergyWater;
+export default PerbandinganWater;
