@@ -1512,21 +1512,69 @@ function ComparisonPanel() {
     return { top: ranking[0], bottom: ranking[ranking.length - 1], count: ranking.length };
   }, [ranking]);
 
-  // Grafik garis multi-series, 1 garis per meter yang dipilih.
+  // FIX timeline kebalik/berantakan: sebelumnya tiap meter dipetakan ke
+  // sumbu-X pakai index array-nya sendiri (x: idx). Itu cuma valid kalau
+  // SEMUA meter punya jumlah baris & urutan yang persis sama - begitu ada
+  // 1 meter aja yang datanya lebih sedikit/beda urutan, index yang sama
+  // (x: 5 misalnya) bisa mewakili jam yang beda-beda antar meter, jadi
+  // label sumbu-X yang muncul keliatan acak/kebalik.
+  //
+  // Solusinya: kumpulin SEMUA label periode dari SEMUA meter terpilih,
+  // dedupe, lalu urutkan ASCENDING berdasarkan tanggal aslinya (paling lama
+  // di kiri, paling baru di kanan). Ini jadi satu-satunya sumbu-X yang
+  // dipakai bareng semua meter - tiap meter tinggal "nempel" ke label yang
+  // sama, kalau meter itu gak punya data di periode tsb, tinggal dikasih
+  // null (garisnya putus di titik itu, bukan ngaco).
+  const unifiedLabels = useMemo(() => {
+    const labelSet = new Set();
+    selectedMeterKeys.forEach((key) => {
+      (comparisonData[key] || []).forEach((r) => {
+        if (r?.label) labelSet.add(r.label);
+      });
+    });
+    return Array.from(labelSet).sort((a, b) => {
+      const da = new Date(a).getTime();
+      const db = new Date(b).getTime();
+      if (!Number.isNaN(da) && !Number.isNaN(db)) return da - db;
+      return String(a).localeCompare(String(b));
+    });
+  }, [comparisonData, selectedMeterKeys]);
+
+  // Lookup cepat "label periode -> row" per meter, dipakai bareng sama
+  // lineChartOptions & combinedRows biar gak nyari linear berulang-ulang.
+  const rowsByLabelMap = useMemo(() => {
+    const map = {};
+    selectedMeterKeys.forEach((key) => {
+      const m = new Map();
+      (comparisonData[key] || []).forEach((r) => {
+        if (r?.label) m.set(r.label, r);
+      });
+      map[key] = m;
+    });
+    return map;
+  }, [comparisonData, selectedMeterKeys]);
+
+  // Grafik garis multi-series, 1 garis per meter yang dipilih - sumbu-X
+  // sekarang ngikutin unifiedLabels (bukan index array masing-masing meter),
+  // jadi urutan waktu dijamin benar & konsisten buat semua meter.
   const lineChartOptions = useMemo(() => {
     const series = selectedMeterKeys.map((key) => {
       const meter = METERS.find((m) => m.key === key);
       const color = (isDarkMode ? meter?.colorDark : meter?.colorLight) || "#888888";
-      const rows = comparisonData[key] || [];
-      const dataPoints = rows.map((r, idx) => ({
-        x: idx,
-        y: Number((Number(r.value) * selectedUnit.factor).toFixed(selectedUnit.decimals)),
-        label: r.label,
-      }));
+      const byLabel = rowsByLabelMap[key];
+      const dataPoints = unifiedLabels.map((lbl, idx) => {
+        const r = byLabel?.get(lbl);
+        return {
+          x: idx,
+          y: r ? Number((Number(r.value) * selectedUnit.factor).toFixed(selectedUnit.decimals)) : null,
+          label: lbl,
+        };
+      });
       return {
         type: "line",
         name: meter?.label || key,
         showInLegend: true,
+        nullDataLineDashType: "dash",
         color,
         lineColor: color,
         markerColor: color,
@@ -1568,7 +1616,7 @@ function ComparisonPanel() {
       toolTip: { shared: true },
       data: series,
     };
-  }, [selectedMeterKeys, comparisonData, isDarkMode, periodType, selectedUnit]);
+  }, [selectedMeterKeys, unifiedLabels, rowsByLabelMap, isDarkMode, periodType, selectedUnit]);
 
   // Grafik doughnut % kontribusi totalizer tiap meter terhadap total
   // gabungan - warnanya disamain sama garis di line chart biar gampang
@@ -1612,24 +1660,20 @@ function ComparisonPanel() {
     };
   }, [ranking, grandTotalDisplay, selectedUnit, isDarkMode]);
 
-  // Tabel gabungan: baris = periode, kolom = tiap meter yang dipilih.
-  // Panjang baris ngikutin meter dengan jumlah bucket terbanyak - normalnya
-  // semua meter punya jumlah bucket sama (start/finish/period sama), tapi
-  // kalau ada meter yang datanya kurang lengkap tetap aman, selnya "-".
+  // Tabel gabungan: baris = periode (ngikutin unifiedLabels, urutan ASC,
+  // paling lama di atas), kolom = tiap meter yang dipilih. Kalau ada meter
+  // yang gak punya data di periode tsb, selnya "-" - gak bikin baris lain
+  // ikut geser kayak versi index-based sebelumnya.
   const combinedRows = useMemo(() => {
-    const maxLen = Math.max(0, ...selectedMeterKeys.map((k) => (comparisonData[k] || []).length));
-    const rows = [];
-    for (let i = 0; i < maxLen; i++) {
-      const row = { id: i + 1, label: null };
+    return unifiedLabels.map((lbl, idx) => {
+      const row = { id: idx + 1, label: lbl };
       selectedMeterKeys.forEach((key) => {
-        const r = (comparisonData[key] || [])[i];
-        if (r && row.label === null) row.label = r.label;
+        const r = rowsByLabelMap[key]?.get(lbl);
         row[key] = r ? Number((Number(r.value) * selectedUnit.factor).toFixed(selectedUnit.decimals)) : null;
       });
-      rows.push(row);
-    }
-    return rows;
-  }, [comparisonData, selectedMeterKeys, selectedUnit]);
+      return row;
+    });
+  }, [unifiedLabels, rowsByLabelMap, selectedMeterKeys, selectedUnit]);
 
   const handlePrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const handleNextPage = () =>
