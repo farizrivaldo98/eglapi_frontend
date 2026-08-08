@@ -616,8 +616,8 @@ function PerbandinganWater() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 my-4 mx-4">
-        <div className="xl:col-span-2 bg-card rounded-lg p-1 shadow-lg overflow-x-auto">
+      <div className={`grid grid-cols-1 ${selectedMeterKeys.length > 1 ? "xl:grid-cols-3" : ""} gap-4 my-4 mx-4`}>
+        <div className={`${selectedMeterKeys.length > 1 ? "xl:col-span-2" : "w-full max-w-5xl mx-auto"} bg-card rounded-lg p-1 shadow-lg overflow-x-auto`}>
           {loading ? (
             <div className="flex flex-col items-center py-10">
               <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="xl" />
@@ -628,20 +628,23 @@ function PerbandinganWater() {
             <CanvasJSChart options={lineChartOptions} />
           )}
         </div>
-        <div className="bg-card rounded-lg p-1 shadow-lg overflow-x-auto">
-          {loading ? (
-            <div className="flex flex-col items-center py-10">
-              <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="lg" />
-            </div>
-          ) : error && Object.keys(comparisonData).length === 0 ? (
-            <div className="text-red-500 flex flex-col items-center py-10">No available data</div>
-          ) : (
-            <CanvasJSChart options={pieChartOptions} />
-          )}
-        </div>
+        
+        {selectedMeterKeys.length > 1 && (
+          <div className="bg-card rounded-lg p-1 shadow-lg overflow-x-auto">
+            {loading ? (
+              <div className="flex flex-col items-center py-10">
+                <Spinner thickness="4px" speed="0.65s" emptyColor="gray.200" color="blue.500" size="lg" />
+              </div>
+            ) : error && Object.keys(comparisonData).length === 0 ? (
+              <div className="text-red-500 flex flex-col items-center py-10">No available data</div>
+            ) : (
+              <CanvasJSChart options={pieChartOptions} />
+            )}
+          </div>
+        )}
       </div>
 
-      {insight && (
+      {insight && selectedMeterKeys.length > 1 && (
         <div className="mx-4 xl:mx-20 mb-6 bg-card rounded-lg p-4 shadow-lg">
           <h5 className="text-text font-semibold mb-3">Ringkasan &amp; Analisa</h5>
           <p className="text-text mb-3">
