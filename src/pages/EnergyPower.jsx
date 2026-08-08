@@ -18,15 +18,15 @@ function EnergyPower() {
   return (
     <div>
       <Tabs variant="enclosed" colorScheme="blue" isFitted>
-        <TabList className="w-full lg:w-3/4" display="flex">
-          <Tab>Total Energy</Tab>
+        <TabList className="w-full lg:w-1/2" display="flex">
+          {/* <Tab>Total Energy</Tab> */}
           <Tab>Analisa Parameter Listrik</Tab>
-          <Tab>Perbandingan Meter</Tab>
+          <Tab>Total Power Meter</Tab>
         </TabList>
         <TabPanels>
-          <TabPanel px={0}>
+          {/* <TabPanel px={0}>
             <TotalEnergyAnalisa />
-          </TabPanel>
+          </TabPanel> */}
           <TabPanel px={0}>
             <ParameterListrik />
           </TabPanel>
