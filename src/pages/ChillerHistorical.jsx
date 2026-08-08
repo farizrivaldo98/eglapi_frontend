@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSelector } from "react-redux";
 import {
   Select,
@@ -31,6 +31,25 @@ import { logAuditAction } from "../features/part/userSlice";
 import logo from "../assets/logolapi.png";
 var CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
+// ── PALET WARNA PER METRIC & DASH STYLE PER CHANNEL ──────────
+// Warna dipasangkan ke metric (bukan channel) supaya tiap parameter selalu
+// punya warna konsisten di seluruh chart, walau cuma 1 channel yang dipilih.
+// Channel dibedakan lewat lineDashType (solid/dash/dot/dashDot), bukan warna.
+const METRIC_COLOR_PALETTE = [
+  "#2E86DE", // biru
+  "#EE5253", // merah
+  "#10AC84", // hijau
+  "#F368E0", // pink
+  "#FF9F43", // oranye
+  "#5F27CD", // ungu
+  "#1DD1A1", // teal
+  "#54A0FF", // biru muda
+  "#C8D6E5", // abu-abu
+  "#576574", // abu tua
+];
+
+const CHANNEL_DASH_TYPES = ["solid", "dash", "dot", "dashDot"];
+
 // channels, metrics, apiBase datang dari Chiller.jsx (konfigurasi bersama Realtime & Historical)
 // isDarkMode juga datang dari Chiller.jsx supaya observer tema cuma jalan sekali di parent
 function ChillerHistorical({ channels, metrics, apiBase, isDarkMode }) {
@@ -49,6 +68,16 @@ function ChillerHistorical({ channels, metrics, apiBase, isDarkMode }) {
   const [isTableVisible, setIsTableVisible] = useState(true);
 
   const userGlobal = useSelector((state) => state.user.user);
+
+  // Map metric.key -> warna tetap, berdasar urutan penuh `metrics` (bukan activeMetrics)
+  // supaya warna tiap metric gak ikut geser saat checkbox di-toggle.
+  const metricColorMap = useMemo(() => {
+    const map = {};
+    metrics.forEach((m, i) => {
+      map[m.key] = METRIC_COLOR_PALETTE[i % METRIC_COLOR_PALETTE.length];
+    });
+    return map;
+  }, [metrics]);
 
   const { colorMode } = useColorMode();
   const borderColor = useColorModeValue("rgba(var(--color-border))", "rgba(var(--color-border))");
@@ -169,10 +198,17 @@ function ChillerHistorical({ channels, metrics, apiBase, isDarkMode }) {
   }));
 
   const chartSeries = [];
-  activeChannels.forEach((channel) => {
+  activeChannels.forEach((channel, channelIndex) => {
     const rows = channelData[channel.key] || [];
+    // Dash style cuma dipakai buat bedain channel kalau lebih dari 1 channel aktif.
+    // Kalau cuma 1 channel, semua garis solid (warna metric aja udah cukup jelas).
+    const dashType =
+      activeChannels.length > 1
+        ? CHANNEL_DASH_TYPES[channelIndex % CHANNEL_DASH_TYPES.length]
+        : "solid";
+
     activeMetrics.forEach((metric, metricIndex) => {
-      const color = isDarkMode ? channel.color.dark : channel.color.light;
+      const color = metricColorMap[metric.key] || (isDarkMode ? channel.color.dark : channel.color.light);
       chartSeries.push({
         type: "line",
         name: `${channel.label} - ${metric.label}`,
@@ -183,6 +219,7 @@ function ChillerHistorical({ channels, metrics, apiBase, isDarkMode }) {
         color,
         lineColor: color,
         markerColor: color,
+        lineDashType: dashType,
         dataPoints: rows.map((row) => ({
           x: row.id,
           y: Number(row[metric.key]),
@@ -336,10 +373,20 @@ function ChillerHistorical({ channels, metrics, apiBase, isDarkMode }) {
         {metrics.map((metric) => (
           <WrapItem key={metric.key}>
             <Checkbox value={metric.key}>
-              <Text as="span" className="text-text">
-                {metric.label}
-                {metric.unit ? ` (${metric.unit})` : ""}
-              </Text>
+              <Box as="span" display="inline-flex" alignItems="center" gap="6px">
+                <Box
+                  as="span"
+                  display="inline-block"
+                  w="10px"
+                  h="10px"
+                  borderRadius="full"
+                  bg={metricColorMap[metric.key]}
+                />
+                <Text as="span" className="text-text">
+                  {metric.label}
+                  {metric.unit ? ` (${metric.unit})` : ""}
+                </Text>
+              </Box>
             </Checkbox>
           </WrapItem>
         ))}
