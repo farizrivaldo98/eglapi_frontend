@@ -45,6 +45,8 @@ const PERIOD_LABELS = {
 const METERS = [
   { key: "trane1", label: "Train 1", colorLight: "#1e90ff", colorDark: "#00bfff" },
   { key: "trane2", label: "Train 2", colorLight: "#32cd32", colorDark: "#00ff00" },
+  { key: "SW_Supplay", label: "SW_Supplay", colorLight: "#cd3232", colorDark: "#cd3232" },
+
 ];
 
 function PerbandinganWater() {
