@@ -19,7 +19,10 @@ const ACTION_CFG = {
   ADMIN_DELETE_USER: { colorScheme: "orange",    label: "Hapus User" },
   SCADA_EDIT_LIMIT: { colorScheme: "putple",    label: "Edit Limit" },
   VIEW_CHILLER: { colorScheme: "green",    label: "View Chiller" },
-  VIEW_ENERGY_WATER: { colorScheme: "green",    label: "View Water" }
+  VIEW_ENERGY_WATER: { colorScheme: "green",    label: "View Water" },
+  VIEW_ENERGY_WATER_COMPARISON :{colorScheme: "green",    label: "View Water comparison"},
+  VIEW_ENERGY_POWER_COMPARISON :{colorScheme: "green",    label: "View Power comparison"}
+
 };
 
 const ROWS_PER_PAGE = 20;
