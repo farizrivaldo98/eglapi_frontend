@@ -33,6 +33,8 @@ export const METERS = [
   { key: "PP_Chiller", label: "PP_Chiller", colorLight: "#cd6b32", colorDark: "#cd6b32" },
   { key: "SDP1_OFC23", label: "SDP1_OFC23", colorLight: "#32b3cd", colorDark: "#32b3cd" },
   { key: "SDP2_PRO2", label: "SDP2_PRO2", colorLight: "#ae7294", colorDark: "#ae7294" },
+  { key: "SDP1_OFC45", label: "SDP2_PRO2", colorLight: "#166d3c", colorDark: "##166d3c" },
+
 
 
 ];
