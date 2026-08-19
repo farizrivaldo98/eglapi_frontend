@@ -48,6 +48,10 @@ import { PERIOD_LABELS, UNITS, METERS } from "./EnergyPowerConstants";
 var CanvasJS = CanvasJSReact.CanvasJS;
 var CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
+// Format angka display SELALU 2 desimal - toLocaleString() polos suka beda-beda
+// jumlah digit di belakang koma (trailing zero ke-strip pas dikonversi ke Number).
+const fmt2 = (n) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 function PerbandinganMeter() {
   const [periodType, setPeriodType] = useState("hourly");
   const [datePickerStart, setDatePickerStart] = useState();
@@ -361,7 +365,7 @@ function PerbandinganMeter() {
       },
       subtitles: [
         {
-          text:      `Total gabungan = ${grandTotalDisplay.toLocaleString()} ${selectedUnit.label}`,
+          text:      `Total gabungan = ${fmt2(grandTotalDisplay)} ${selectedUnit.label}`,
           fontColor: isDarkMode ? "white" : "black",
           fontSize:  11,
         },
@@ -504,7 +508,7 @@ function PerbandinganMeter() {
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text(
-      `Total Gabungan Semua Meter = ${grandTotalDisplay.toLocaleString()} ${selectedUnit.label}`,
+      `Total Gabungan Semua Meter = ${fmt2(grandTotalDisplay)} ${selectedUnit.label}`,
       14,
       summaryFinalY + 5
     );
@@ -726,12 +730,12 @@ function PerbandinganMeter() {
           <p className="text-text mb-3">
             Dari {insight.count} meter yang dibandingkan pada periode ini, total energi gabungan adalah{" "}
             <strong>
-              {grandTotalDisplay.toLocaleString()} {selectedUnit.label}
+              {fmt2(grandTotalDisplay)} {selectedUnit.label}
             </strong>
             . Konsumen energi tertinggi adalah <strong>{insight.top.label}</strong> dengan kontribusi{" "}
-            <strong>{insight.top.pct}%</strong> ({insight.top.totalDisplay.toLocaleString()} {selectedUnit.label}),
+            <strong>{insight.top.pct}%</strong> ({fmt2(insight.top.totalDisplay)} {selectedUnit.label}),
             sedangkan yang terendah adalah <strong>{insight.bottom.label}</strong> dengan{" "}
-            <strong>{insight.bottom.pct}%</strong> ({insight.bottom.totalDisplay.toLocaleString()} {selectedUnit.label}).
+            <strong>{insight.bottom.pct}%</strong> ({fmt2(insight.bottom.totalDisplay)} {selectedUnit.label}).
           </p>
           <div className="flex flex-col gap-2 overflow-x-auto">
             {/* Keterangan kolom - % dan Total udah ada dari awal, Avg/Max/Min baru.
@@ -758,16 +762,16 @@ function PerbandinganMeter() {
                 </div>
                 <span className="text-text w-16 text-right whitespace-nowrap">{r.pct}%</span>
                 <span className="text-text w-32 text-right whitespace-nowrap">
-                  {r.totalDisplay.toLocaleString()} {selectedUnit.label}
+                  {fmt2(r.totalDisplay)} {selectedUnit.label}
                 </span>
                 <span className="text-text w-24 text-right whitespace-nowrap">
-                  {r.avgDisplay.toLocaleString()} {selectedUnit.label}
+                  {fmt2(r.avgDisplay)} {selectedUnit.label}
                 </span>
                 <span className="text-text w-24 text-right whitespace-nowrap">
-                  {r.maxDisplay.toLocaleString()} {selectedUnit.label}
+                  {fmt2(r.maxDisplay)} {selectedUnit.label}
                 </span>
                 <span className="text-text w-24 text-right whitespace-nowrap">
-                  {r.minDisplay.toLocaleString()} {selectedUnit.label}
+                  {fmt2(r.minDisplay)} {selectedUnit.label}
                 </span>
               </div>
             ))}
