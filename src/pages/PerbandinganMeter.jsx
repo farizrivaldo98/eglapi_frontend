@@ -230,6 +230,9 @@ function PerbandinganMeter() {
           color:        (isDarkMode ? meter?.colorDark : meter?.colorLight) || "#888888",
           totalRaw:     total,
           totalDisplay: meterStatsDisplay[key]?.total ?? 0,
+          avgDisplay:   meterStatsDisplay[key]?.avg   ?? 0,
+          maxDisplay:   meterStatsDisplay[key]?.max   ?? 0,
+          minDisplay:   meterStatsDisplay[key]?.min   ?? 0,
           pct:          Number(pct.toFixed(2)),
         };
       })
@@ -730,7 +733,19 @@ function PerbandinganMeter() {
             sedangkan yang terendah adalah <strong>{insight.bottom.label}</strong> dengan{" "}
             <strong>{insight.bottom.pct}%</strong> ({insight.bottom.totalDisplay.toLocaleString()} {selectedUnit.label}).
           </p>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 overflow-x-auto">
+            {/* Keterangan kolom - % dan Total udah ada dari awal, Avg/Max/Min baru.
+                Semuanya per-meter (per area), BUKAN min/max gabungan semua meter. */}
+            <div className="flex items-center gap-3 px-1">
+              <span className="w-6" />
+              <span className="w-32" />
+              <span className="flex-1" />
+              <span className="text-text text-xs font-semibold w-16 text-right whitespace-nowrap">%</span>
+              <span className="text-text text-xs font-semibold w-32 text-right whitespace-nowrap">Total</span>
+              <span className="text-text text-xs font-semibold w-24 text-right whitespace-nowrap">Avg</span>
+              <span className="text-text text-xs font-semibold w-24 text-right whitespace-nowrap">Max</span>
+              <span className="text-text text-xs font-semibold w-24 text-right whitespace-nowrap">Min</span>
+            </div>
             {ranking.map((r, idx) => (
               <div key={r.key} className="flex items-center gap-3">
                 <span className="text-text w-6">{idx + 1}.</span>
@@ -741,9 +756,18 @@ function PerbandinganMeter() {
                 >
                   <div className="h-4 rounded" style={{ width: `${r.pct}%`, background: r.color }} />
                 </div>
-                <span className="text-text w-16 text-right">{r.pct}%</span>
-                <span className="text-text w-32 text-right">
+                <span className="text-text w-16 text-right whitespace-nowrap">{r.pct}%</span>
+                <span className="text-text w-32 text-right whitespace-nowrap">
                   {r.totalDisplay.toLocaleString()} {selectedUnit.label}
+                </span>
+                <span className="text-text w-24 text-right whitespace-nowrap">
+                  {r.avgDisplay.toLocaleString()} {selectedUnit.label}
+                </span>
+                <span className="text-text w-24 text-right whitespace-nowrap">
+                  {r.maxDisplay.toLocaleString()} {selectedUnit.label}
+                </span>
+                <span className="text-text w-24 text-right whitespace-nowrap">
+                  {r.minDisplay.toLocaleString()} {selectedUnit.label}
                 </span>
               </div>
             ))}
