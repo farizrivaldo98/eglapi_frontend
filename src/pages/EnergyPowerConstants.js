@@ -34,7 +34,9 @@ export const METERS = [
   { key: "SDP1_OFC23", label: "SDP1_OFC23", colorLight: "#32b3cd", colorDark: "#32b3cd" },
   { key: "SDP2_PRO2", label: "SDP2_PRO2", colorLight: "#ae7294", colorDark: "#ae7294" },
   { key: "SDP1_OFC45", label: "SDP1_OFC45", colorLight: "#166d3c", colorDark: "#166d3c" },
-  { key: "SDP2_OFC45", label: "SDP2_OFC45", colorLight: "#5c6d16", colorDark: "#5c6d16" }
+  { key: "SDP2_OFC45", label: "SDP2_OFC45", colorLight: "#5c6d16", colorDark: "#5c6d16" },
+  { key: "SDP_MC", label: "SDP_MC", colorLight: "#d1c543", colorDark: "#d1c543" }
+
 
 
 
