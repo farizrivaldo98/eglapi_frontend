@@ -49,6 +49,10 @@ const METERS = [
 
 ];
 
+// Format angka display SELALU 2 desimal - toLocaleString() polos suka beda-beda
+// jumlah digit di belakang koma (trailing zero ke-strip pas dikonversi ke Number).
+const fmt2 = (n) => Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 function PerbandinganWater() {
   const [periodType, setPeriodType] = useState("hourly");
   const [datePickerStart, setDatePickerStart] = useState();
@@ -197,6 +201,9 @@ function PerbandinganWater() {
           label: meter?.label || key,
           color: (isDarkMode ? meter?.colorDark : meter?.colorLight) || "#888888",
           totalDisplay: total,
+          avgDisplay: meterStatsDisplay[key]?.avg ?? 0,
+          maxDisplay: meterStatsDisplay[key]?.max ?? 0,
+          minDisplay: meterStatsDisplay[key]?.min ?? 0,
           pct: Number(pct.toFixed(2)),
         };
       })
@@ -314,7 +321,7 @@ function PerbandinganWater() {
       },
       subtitles: [
         {
-          text: `Total gabungan = ${grandTotalDisplay.toLocaleString()} ${VOLUME_UNIT}`,
+          text: `Total gabungan = ${fmt2(grandTotalDisplay)} ${VOLUME_UNIT}`,
           fontColor: isDarkMode ? "white" : "black",
           fontSize: 11,
         },
@@ -454,7 +461,7 @@ function PerbandinganWater() {
     doc.setFontSize(8);
     doc.setFont("helvetica", "bold");
     doc.text(
-      `Total Gabungan Semua Meter = ${grandTotalDisplay.toLocaleString()} ${VOLUME_UNIT}`,
+      `Total Gabungan Semua Meter = ${fmt2(grandTotalDisplay)} ${VOLUME_UNIT}`,
       14,
       summaryFinalY + 5
     );
@@ -652,14 +659,26 @@ function PerbandinganWater() {
           <p className="text-text mb-3">
             Dari {insight.count} meter yang dibandingkan pada periode ini, total pemakaian air gabungan adalah{" "}
             <strong>
-              {grandTotalDisplay.toLocaleString()} {VOLUME_UNIT}
+              {fmt2(grandTotalDisplay)} {VOLUME_UNIT}
             </strong>
             . Penggunaan tertinggi adalah <strong>{insight.top.label}</strong> dengan kontribusi{" "}
-            <strong>{insight.top.pct}%</strong> ({insight.top.totalDisplay.toLocaleString()} {VOLUME_UNIT}),
+            <strong>{insight.top.pct}%</strong> ({fmt2(insight.top.totalDisplay)} {VOLUME_UNIT}),
             sedangkan yang terendah adalah <strong>{insight.bottom.label}</strong> dengan{" "}
-            <strong>{insight.bottom.pct}%</strong> ({insight.bottom.totalDisplay.toLocaleString()} {VOLUME_UNIT}).
+            <strong>{insight.bottom.pct}%</strong> ({fmt2(insight.bottom.totalDisplay)} {VOLUME_UNIT}).
           </p>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 overflow-x-auto">
+            {/* Keterangan kolom - % dan Total udah ada dari awal, Avg/Max/Min baru.
+                Semuanya per-meter (per area), BUKAN min/max gabungan semua meter. */}
+            <div className="flex items-center gap-3 px-1">
+              <span className="w-6" />
+              <span className="w-32" />
+              <span className="flex-1" />
+              <span className="text-text text-xs font-semibold w-16 text-right whitespace-nowrap">%</span>
+              <span className="text-text text-xs font-semibold w-32 text-right whitespace-nowrap">Total</span>
+              <span className="text-text text-xs font-semibold w-24 text-right whitespace-nowrap">Avg</span>
+              <span className="text-text text-xs font-semibold w-24 text-right whitespace-nowrap">Max</span>
+              <span className="text-text text-xs font-semibold w-24 text-right whitespace-nowrap">Min</span>
+            </div>
             {ranking.map((r, idx) => (
               <div key={r.key} className="flex items-center gap-3">
                 <span className="text-text w-6">{idx + 1}.</span>
@@ -670,9 +689,18 @@ function PerbandinganWater() {
                 >
                   <div className="h-4 rounded" style={{ width: `${r.pct}%`, background: r.color }} />
                 </div>
-                <span className="text-text w-16 text-right">{r.pct}%</span>
-                <span className="text-text w-32 text-right">
-                  {r.totalDisplay.toLocaleString()} {VOLUME_UNIT}
+                <span className="text-text w-16 text-right whitespace-nowrap">{r.pct}%</span>
+                <span className="text-text w-32 text-right whitespace-nowrap">
+                  {fmt2(r.totalDisplay)} {VOLUME_UNIT}
+                </span>
+                <span className="text-text w-24 text-right whitespace-nowrap">
+                  {fmt2(r.avgDisplay)} {VOLUME_UNIT}
+                </span>
+                <span className="text-text w-24 text-right whitespace-nowrap">
+                  {fmt2(r.maxDisplay)} {VOLUME_UNIT}
+                </span>
+                <span className="text-text w-24 text-right whitespace-nowrap">
+                  {fmt2(r.minDisplay)} {VOLUME_UNIT}
                 </span>
               </div>
             ))}
