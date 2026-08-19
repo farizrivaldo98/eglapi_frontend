@@ -242,18 +242,6 @@ function PerbandinganMeter() {
     return { top: ranking[0], bottom: ranking[ranking.length - 1], count: ranking.length };
   }, [ranking]);
 
-  // Rata-rata total energi per meter (dari SEMUA meter yang lagi
-  // dibandingkan) - dihitung dari grandTotalRaw (Wh mentah) dulu baru
-  // dikonversi, pola yang sama kayak stats lain biar gak numpuk pembulatan.
-  const avgTotalRaw = useMemo(
-    () => (ranking.length > 0 ? grandTotalRaw / ranking.length : 0),
-    [grandTotalRaw, ranking.length]
-  );
-  const avgTotalDisplay = useMemo(
-    () => Number((avgTotalRaw * selectedUnit.factor).toFixed(selectedUnit.decimals)),
-    [avgTotalRaw, selectedUnit]
-  );
-
   // FIX timeline kebalik/berantakan: kumpulin SEMUA label periode dari SEMUA
   // meter terpilih, dedupe, lalu urutkan ASCENDING berdasarkan tanggal aslinya
   // (paling lama di kiri, paling baru di kanan). Ini jadi satu-satunya sumbu-X
@@ -742,45 +730,6 @@ function PerbandinganMeter() {
             sedangkan yang terendah adalah <strong>{insight.bottom.label}</strong> dengan{" "}
             <strong>{insight.bottom.pct}%</strong> ({insight.bottom.totalDisplay.toLocaleString()} {selectedUnit.label}).
           </p>
-
-          {/* Statistik Total per Meter - Min/Max/Avg dari total ke-7 meter yang
-              lagi dibandingkan (beda sama Avg/Max/Min di Tab 1 yang per-periode).
-              Max/Min reuse insight.top/insight.bottom, gak dihitung ulang. */}
-          <div className="mb-4">
-            <h6 className="text-text font-semibold text-xs uppercase tracking-wide opacity-70 mb-2">
-              Statistik Total per Meter
-            </h6>
-            <div className="flex flex-wrap gap-3">
-              <div
-                className="flex-1 min-w-[180px] rounded-md p-3"
-                style={{ background: isDarkMode ? "#333333" : "#e5e7eb" }}
-              >
-                <div className="text-text text-xs opacity-70">Rata-rata (Avg)</div>
-                <div className="text-text font-semibold">
-                  {avgTotalDisplay.toLocaleString()} {selectedUnit.label}
-                </div>
-              </div>
-              <div
-                className="flex-1 min-w-[180px] rounded-md p-3"
-                style={{ background: isDarkMode ? "#333333" : "#e5e7eb" }}
-              >
-                <div className="text-text text-xs opacity-70">Tertinggi (Max)</div>
-                <div className="text-text font-semibold">
-                  {insight.top.label} — {insight.top.totalDisplay.toLocaleString()} {selectedUnit.label}
-                </div>
-              </div>
-              <div
-                className="flex-1 min-w-[180px] rounded-md p-3"
-                style={{ background: isDarkMode ? "#333333" : "#e5e7eb" }}
-              >
-                <div className="text-text text-xs opacity-70">Terendah (Min)</div>
-                <div className="text-text font-semibold">
-                  {insight.bottom.label} — {insight.bottom.totalDisplay.toLocaleString()} {selectedUnit.label}
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div className="flex flex-col gap-2">
             {ranking.map((r, idx) => (
               <div key={r.key} className="flex items-center gap-3">
