@@ -26,16 +26,16 @@ export const UNITS = {
 // databaseControllers.js). Dipakai bareng-bareng sama semua tab karena
 // sumber tabelnya sama.
 export const METERS = [
-  { key: "uty1",      label: "PP UTY1",   colorLight: "#1e90ff", colorDark: "#00bfff" },
-  { key: "lapi1",     label: "PP LAPI1",  colorLight: "#32cd32", colorDark: "#00ff00" },
+  { key: "uty1",      label: "SDP UTILITY",   colorLight: "#1e90ff", colorDark: "#00bfff" },
+  { key: "lapi1",     label: "SDP LAPI 1",  colorLight: "#32cd32", colorDark: "#00ff00" },
   { key: "SDP2_Pro1", label: "SDP2_Pro1", colorLight: "#ceff1e", colorDark: "#ceff1e" },
   { key: "SDP1_Ofc1", label: "SDP1_Ofc1", colorLight: "#cd32b8", colorDark: "#cd32b8" },
-  { key: "PP_Chiller", label: "PP_Chiller", colorLight: "#cd6b32", colorDark: "#cd6b32" },
+  { key: "PP_Chiller", label: "SDP CHILLER", colorLight: "#cd6b32", colorDark: "#cd6b32" },
   { key: "SDP1_OFC23", label: "SDP1_OFC23", colorLight: "#32b3cd", colorDark: "#32b3cd" },
   { key: "SDP2_PRO2", label: "SDP2_PRO2", colorLight: "#ae7294", colorDark: "#ae7294" },
   { key: "SDP1_OFC45", label: "SDP1_OFC45", colorLight: "#166d3c", colorDark: "#166d3c" },
   { key: "SDP2_OFC45", label: "SDP2_OFC45", colorLight: "#5c6d16", colorDark: "#5c6d16" },
-  { key: "SDP_MC", label: "SDP_MC", colorLight: "#d1c543", colorDark: "#d1c543" }
+  { key: "SDP_MC", label: "SDP MICRO", colorLight: "#d1c543", colorDark: "#d1c543" }
 
 
 
