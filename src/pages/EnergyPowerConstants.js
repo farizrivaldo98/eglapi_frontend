@@ -28,8 +28,8 @@ export const UNITS = {
 export const METERS = [
   { key: "uty1",      label: "SDP UTILITY",   colorLight: "#1e90ff", colorDark: "#00bfff" },
   { key: "lapi1",     label: "SDP LAPI 1",  colorLight: "#32cd32", colorDark: "#00ff00" },
-  { key: "SDP2_Pro1", label: "SDP2_Pro1", colorLight: "#ceff1e", colorDark: "#ceff1e" },
-  { key: "SDP1_Ofc1", label: "SDP1_Ofc1", colorLight: "#cd32b8", colorDark: "#cd32b8" },
+  { key: "SDP2_PRO1", label: "SDP2_PRO1", colorLight: "#ceff1e", colorDark: "#ceff1e" },
+  { key: "SDP1_OFC1", label: "SDP1_OFC1", colorLight: "#cd32b8", colorDark: "#cd32b8" },
   { key: "PP_Chiller", label: "SDP CHILLER", colorLight: "#cd6b32", colorDark: "#cd6b32" },
   { key: "SDP1_OFC23", label: "SDP1_OFC23", colorLight: "#32b3cd", colorDark: "#32b3cd" },
   { key: "SDP2_PRO2", label: "SDP2_PRO2", colorLight: "#ae7294", colorDark: "#ae7294" },
