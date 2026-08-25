@@ -48,7 +48,7 @@ const STATUS_DOT_COLOR = {
 
 const FLOW_METERS = [
   { tag: "SW_Supplay", label: "SW_Supplay" },
-  { tag: "PWG_Return", label: "PWG_Return" },
+  { tag: "PWG_Return", label: "PWG_Input" },
   { tag: "PDAM_Supplay", label: "PDAM_Supplay" },
 ];
 
