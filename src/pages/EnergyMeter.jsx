@@ -191,11 +191,6 @@ export default function EnergyMeter() {
     connectWS();
     toast({ title: "Mencoba konek ulang WebSocket…", status: "info", duration: 2000 });
   };
-  const formatKwh = (val) => {
-  const num = Number(val);
-  if (val === null || val === undefined || isNaN(num)) return '-';
-  return num.toLocaleString('en-US');
-};
 
   // ══════════════════════════════════════════════════════════════
   // RENDER
@@ -270,7 +265,6 @@ export default function EnergyMeter() {
                   a={data[t.a]}
                   kw={data[t.kw]}
                   kwh={data[t.kwh]}
-                  
                 />
               </div>
             );
@@ -293,6 +287,14 @@ function PowerMeterDisplay({ label, v, a, kw, kwh }) {
   const formatVal = (val, digits) =>
     typeof val === "number" ? val.toFixed(digits) : "—";
 
+  const formatKwh = (val, digits) =>
+    typeof val === "number"
+      ? val.toLocaleString("en-US", {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits,
+        })
+      : "—";
+
   return (
    <div className="flex flex-col items-center gap-1">
       <svg viewBox="0 0 1280 1120" className="w-full h-auto" style={{ maxWidth: 300 }}>
@@ -310,8 +312,8 @@ function PowerMeterDisplay({ label, v, a, kw, kwh }) {
           <text x="380" y="380" fontSize="100">{formatVal(v, 1)}</text>
           <text x="380" y="500" fontSize="100">{formatVal(a, 1)}</text>
           <text x="380" y="610" fontSize="100">{formatVal(kw, 2)}</text>
-          <text x="380" y="720" fontSize="100">{formatKwh({formatVal(kwh, 1)})}</text>
-
+          {/* <text x="380" y="720" fontSize="100">{formatVal(kwh, 1)}</text> */}
+          <text x="380" y="720" fontSize="100">{formatKwh(kwh, 1)}</text>
           {/* Kolom Satuan - Sejajar lurus di kordinat X=820 */}
           <text x="820" y="380" fontSize="100">V</text>
           <text x="820" y="500" fontSize="100">A</text>
