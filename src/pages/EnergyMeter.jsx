@@ -439,7 +439,7 @@ function FlowMeterDisplay({ uid, label, flow, status, total, unit = "m³/h" }) {
           <g>
             <rect x="320" y="695" width="260" height="46" rx="4" fill="#e6ddc7" stroke="#a2a0a0" strokeWidth="2" />
             <polygon points="343,705 357,730 329,730" fill="#f2c400" stroke="#4d4d4d" strokeWidth="2" />
-            <text x="445" y="726" textAnchor="middle" fontFamily="Arial" fontSize="15" fontWeight="700">!</text>
+            <text x="343" y="726" textAnchor="middle" fontFamily="Arial" fontSize="15" fontWeight="700">!</text>
             <text x="445" y="717" textAnchor="middle" fontFamily="Arial" fontSize="10" fill="#414141">CAUTION</text>
             <text x="445" y="731" textAnchor="middle" fontFamily="Arial" fontSize="7" fill="#414141">Do not open the cover</text>
           </g>
