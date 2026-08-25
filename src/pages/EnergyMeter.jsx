@@ -285,7 +285,7 @@ function PowerMeterDisplay({ label, v, a, kw, kwh }) {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <svg viewBox="0 0 1280 1120" className="w-full h-auto" style={{ maxWidth: 260 }}>
+      <svg viewBox="0 0 1280 1120" className="w-full h-auto" style={{ maxWidth: 300 }}>
         <image
           href={pm5350Photo}
           x="0"
