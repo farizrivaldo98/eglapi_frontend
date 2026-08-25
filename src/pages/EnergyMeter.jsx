@@ -17,20 +17,27 @@ import pm5350Photo from "../assets/scada/schneider-pm5350.png";
 //      2 detik supaya tampilan tetap "hidup" — begitu WS live, generator
 //      random otomatis berhenti dan value asli dari PLC/Meter yang dipakai.
 //
-// Tag naming convention (samakan di flow Node-RED nanti):
-//   Flow meter (FM1..FM3):
-//     FM{n}_Flow    → laju alir realtime, m³/h
-//     FM{n}_Total   → totalizer akumulatif, m³
-//     FM{n}_Status  → "RUN" | "STOP"
-//   Power meter (PM1..PM10):
-//     PM{n}_V       → tegangan, V
-//     PM{n}_A       → arus, A
-//     PM{n}_kW      → daya aktif, kW
-//     PM{n}_kWh     → energi kumulatif, kWh
+// Tag naming — SUDAH disamakan persis dengan nama yang dipakai di flow
+// Node-RED (function "Simpan Data Power Meter Terbaru" & "Simpan Data
+// Flow Meter Terbaru"). <NAMA> = tag persis seperti di POWER_METERS /
+// FLOW_METERS di bawah (mis. "SDP1-OFC1", "PP_Chiller", "PWG_Return"):
+//   Flow meter (SW_Supplay, PWG_Return, PDAM_Supplay):
+//     <NAMA>_Flow    → laju alir realtime, m³/h
+//     <NAMA>_Total   → totalizer akumulatif, m³
+//     <NAMA>_Status  → "RUN" | "STOP"
+//   Power meter (PP_UTY1, PP_LAPI1, SDP2-PRO1, SDP1-OFC1, PP_Chiller,
+//                SDP1-OFC23, SDP2-PRO2, SDP1-OFC45, SDP2-OFC45, SDP-MC):
+//     <NAMA>_V       → tegangan, V
+//     <NAMA>_A       → arus, A
+//     <NAMA>_kW      → daya aktif, kW
+//     <NAMA>_kWh     → energi kumulatif, kWh
 // ═══════════════════════════════════════════════════════════════════
 
-// Ganti sesuai endpoint Node-RED untuk energy meter (boleh gabung dgn
-// endpoint SCADA yang ada di EnvironmentManagementSystem.jsx / boleh flow terpisah)
+// Endpoint Node-RED khusus Energy Meter — path terpisah dari /ws/scada (AHU),
+// dilayani websocket-listener baru "/ws/energy" + node "WS Out - /ws/energy",
+// dipicu dari function "Simpan Data Power Meter Terbaru" & "Simpan Data
+// Flow Meter Terbaru". Sesuaikan host/port kalau Node-RED tidak jalan di
+// 10.163.0.66:1880.
 const ENERGY_WS_URL = "ws://10.163.0.66:1880/ws/energy";
 
 const STATUS_DOT_COLOR = {
@@ -40,15 +47,23 @@ const STATUS_DOT_COLOR = {
 };
 
 const FLOW_METERS = [
-  { tag: "FM1", label: "Flow Meter 1" },
-  { tag: "FM2", label: "Flow Meter 2" },
-  { tag: "FM3", label: "Flow Meter 3" },
+  { tag: "SW_Supplay", label: "SW_Supplay" },
+  { tag: "PWG_Return", label: "PWG_Return" },
+  { tag: "PDAM_Supplay", label: "PDAM_Supplay" },
 ];
 
-const POWER_METERS = Array.from({ length: 10 }, (_, i) => ({
-  tag: `PM${i + 1}`,
-  label: `Power Meter ${i + 1}`,
-}));
+const POWER_METERS = [
+  { tag: "PP_UTY1", label: "PP_UTY1" },
+  { tag: "PP_LAPI1", label: "PP_LAPI1" },
+  { tag: "SDP2-PRO1", label: "SDP2-PRO1" },
+  { tag: "SDP1-OFC1", label: "SDP1-OFC1" },
+  { tag: "PP_Chiller", label: "PP_Chiller" },
+  { tag: "SDP1-OFC23", label: "SDP1-OFC23" },
+  { tag: "SDP2-PRO2", label: "SDP2-PRO2" },
+  { tag: "SDP1-OFC45", label: "SDP1-OFC45" },
+  { tag: "SDP2-OFC45", label: "SDP2-OFC45" },
+  { tag: "SDP-MC", label: "SDP-MC" },
+];
 
 const getFlowTags = (tag) => ({
   flow: `${tag}_Flow`,
