@@ -235,7 +235,7 @@ export default function EnergyMeter() {
           {FLOW_METERS.map(({ tag, label }) => {
             const t = getFlowTags(tag);
             return (
-              <div key={tag} className="bg-card rounded-md shadow-lg p-4 flex justify-center">
+              <div key={tag} className="bg-card rounded-md shadow-lg flex justify-center">
                 <FlowMeterDisplay
                   uid={tag}
                   label={label}
