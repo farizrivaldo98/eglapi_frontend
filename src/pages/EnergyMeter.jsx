@@ -469,7 +469,7 @@ function FlowMeterDisplay({ uid, label, flow, status, total, unit = "m³/h" }) {
           </g>
         </g>
 
-        <ellipse cx="450" cy="895" rx="285" ry="34" fill="#1d252b" opacity="0.16" filter={`url(#${fSoft})`} />
+       
       </svg>
       <Text fontSize="sm" fontWeight="bold">{label}</Text>
     </div>
