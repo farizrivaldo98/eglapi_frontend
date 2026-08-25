@@ -420,45 +420,13 @@ function FlowMeterDisplay({ uid, label, flow, status, total, unit = "m³/h" }) {
   fontFamily="Consolas, 'Courier New', monospace"
   fill="#263322"
   opacity="0.9"
-><text
-  x="270"
-  y="285"
-  fontSize="40"
-  fontWeight="700"
-  fill="#263322"
 >
-  Flow
-</text>
-
-<text
-  x="380"
-  y="285"
-  fontSize="40"
-  fontWeight="700"
-  fill="#263322"
->
-  {flowText} {unit}
-</text>
-
-<text
-  x="270"
-  y="340"
-  fontSize="40"
-  fontWeight="700"
-  fill="#263322"
->
-  NET
-</text>
-
-<text
-  x="380"
-  y="340"
-  fontSize="40"
-  fontWeight="700"
-  fill="#263322"
->
-  {totalText} m³
-</text>
+            <text x="270" y="285" fontSize="40" fontWeight="700" fill="#525252f6">Flow</text>
+            <text x="380" y="285" fontSize="40" fontWeight="700" fill="#525252f6">{flowText} {unit}</text>
+            {/* <text x="270" y="309" fontSize="30">Rate</text>
+            <text x="380" y="309" fontSize="30" fontWeight="700" fill={statusColor}>{statusText}</text> */}
+            <text x="270" y="340" fontSize="40" fontWeight="700" fill="#525252f6">NET</text>  
+            <text x="380" y="340" fontSize="40" fontWeight="700" fill="#525252f6">{totalText} m³</text>
           </g>
 
           {/* keypad (dekoratif, statis) */}
