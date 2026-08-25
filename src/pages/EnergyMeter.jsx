@@ -409,12 +409,12 @@ function FlowMeterDisplay({ uid, label, flow, status, total, unit = "m³/h" }) {
 
           {/* SCADA value area inside LCD — live data */}
           <g fontFamily="Consolas, 'Courier New', monospace" fill="#0b2c00">
-            <text x="270" y="276" fontSize="30" fontWeight="700">Flow</text>
-            <text x="380" y="276" fontSize="30" fontWeight="700">{flowText} {unit}</text>
-            <text x="270" y="309" fontSize="30">Rate</text>
-            <text x="380" y="309" fontSize="30" fontWeight="700" fill={statusColor}>{statusText}</text>
-            <text x="270" y="340" fontSize="30" fontWeight="700">NET</text>
-            <text x="380" y="340" fontSize="30" fontWeight="700">{totalText} m³</text>
+            <text x="270" y="276" fontSize="45" fontWeight="700">Flow</text>
+            <text x="380" y="276" fontSize="45" fontWeight="700">{flowText} {unit}</text>
+            {/* <text x="270" y="309" fontSize="30">Rate</text>
+            <text x="380" y="309" fontSize="30" fontWeight="700" fill={statusColor}>{statusText}</text> */}
+            <text x="270" y="340" fontSize="45" fontWeight="700">NET</text>
+            <text x="380" y="340" fontSize="45" fontWeight="700">{totalText} m³</text>
           </g>
 
           {/* keypad (dekoratif, statis) */}
