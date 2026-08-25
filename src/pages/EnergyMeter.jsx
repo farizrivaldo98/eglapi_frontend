@@ -191,6 +191,11 @@ export default function EnergyMeter() {
     connectWS();
     toast({ title: "Mencoba konek ulang WebSocket…", status: "info", duration: 2000 });
   };
+  const formatKwh = (val) => {
+  const num = Number(val);
+  if (val === null || val === undefined || isNaN(num)) return '-';
+  return num.toLocaleString('en-US');
+};
 
   // ══════════════════════════════════════════════════════════════
   // RENDER
@@ -264,8 +269,8 @@ export default function EnergyMeter() {
                   v={data[t.v]}
                   a={data[t.a]}
                   kw={data[t.kw]}
-                  // kwh={data[t.kwh]}
-                  kwh={data[t.kwh] !== undefined ? Number(data[t.kwh]).toLocaleString('en-US') : data[t.kwh]}
+                  kwh={formatKwh(data[t.kwh])}
+                  
                 />
               </div>
             );
