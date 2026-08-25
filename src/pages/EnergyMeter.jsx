@@ -264,11 +264,7 @@ export default function EnergyMeter() {
                   v={data[t.v]}
                   a={data[t.a]}
                   kw={data[t.kw]}
-                  //kwh={data[t.kwh]}
-                  kwh={Number(data[t.kwh]).toLocaleString('en-US', { 
-      minimumFractionDigits: 1, 
-      maximumFractionDigits: 1 
-    })}
+                  kwh={data[t.kwh]}
                 />
               </div>
             );
