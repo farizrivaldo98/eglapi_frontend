@@ -312,7 +312,7 @@ function FlowMeterDisplay({ uid, label, flow, status, total, unit = "m³/h" }) {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <svg viewBox="0 0 900 1000" className="w-full h-auto" style={{ maxWidth: 230 }}>
+      <svg viewBox="0 0 900 1000" className="w-full h-auto" style={{ maxWidth: 300 }}>
         <defs>
           <linearGradient id={gBody} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#1672b5" />
