@@ -301,10 +301,10 @@ function PowerMeterDisplay({ label, v, a, kw, kwh }) {
         <g fontFamily="'Digital-7 Mono', monospace" fontWeight="normal" fill="#1f2a1f">
           
           {/* Kolom Angka - Dimulai di kordinat X=280 */}
-          <text x="280" y="380" fontSize="100">{formatVal(v, 1)}</text>
-          <text x="280" y="500" fontSize="100">{formatVal(a, 1)}</text>
-          <text x="280" y="610" fontSize="100">{formatVal(kw, 2)}</text>
-          <text x="280" y="720" fontSize="100">{formatVal(kwh, 1)}</text>
+          <text x="350" y="380" fontSize="100">{formatVal(v, 1)}</text>
+          <text x="350" y="500" fontSize="100">{formatVal(a, 1)}</text>
+          <text x="350" y="610" fontSize="100">{formatVal(kw, 2)}</text>
+          <text x="350" y="720" fontSize="100">{formatVal(kwh, 1)}</text>
 
           {/* Kolom Satuan - Sejajar lurus di kordinat X=820 */}
           <text x="820" y="380" fontSize="100">V</text>
