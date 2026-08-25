@@ -426,7 +426,7 @@ function FlowMeterDisplay({ uid, label, flow, status, total, unit = "m³/h" }) {
           </g>
 
           {/* keypad (dekoratif, statis) */}
-          <g fontFamily="Arial, sans-serif" fontSize="19" textAnchor="middle">
+          <g fontFamily="Arial, sans-serif" fontSize="30" textAnchor="middle">
             <g fill="#626b70" stroke="#aeb5b9" strokeWidth="3">
               <rect x="252" y="405" width="62" height="48" rx="22" /><rect x="334" y="405" width="62" height="48" rx="22" /><rect x="416" y="405" width="62" height="48" rx="22" /><rect x="498" y="405" width="84" height="48" rx="22" />
               <rect x="252" y="470" width="62" height="48" rx="22" /><rect x="334" y="470" width="62" height="48" rx="22" /><rect x="416" y="470" width="62" height="48" rx="22" /><rect x="498" y="470" width="84" height="48" rx="22" />
