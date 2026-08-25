@@ -284,6 +284,25 @@ function PowerMeterDisplay({ label, v, a, kw, kwh }) {
     typeof val === "number" ? `${val.toFixed(digits)} ${unit}` : `— ${unit}`;
 
   return (
+    // <div className="flex flex-col items-center gap-1">
+    //   <svg viewBox="0 0 1280 1120" className="w-full h-auto" style={{ maxWidth: 300 }}>
+    //     <image
+    //       href={pm5350Photo}
+    //       x="0"
+    //       y="0"
+    //       width="1280"
+    //       height="1120"
+    //       preserveAspectRatio="xMidYMid meet"
+    //     />
+    //     <g fontFamily="Consolas, 'Courier New', monospace" fontWeight="600" fill="#1f2a1f">
+    //       <text x="360" y="380" fontSize="90">{line(v, 1, "V")}</text>
+    //       <text x="360" y="500" fontSize="90">{line(a, 1, "A")}</text>
+    //       <text x="360" y="610" fontSize="90">{line(kw, 2, "kW")}</text>
+    //       <text x="360" y="720" fontSize="90">{line(kwh, 1, "kWh")}</text>
+    //     </g>
+    //   </svg>
+    //   <Text fontSize="sm" fontWeight="bold">{label}</Text>
+    // </div>
     <div className="flex flex-col items-center gap-1">
       <svg viewBox="0 0 1280 1120" className="w-full h-auto" style={{ maxWidth: 300 }}>
         <image
@@ -294,7 +313,8 @@ function PowerMeterDisplay({ label, v, a, kw, kwh }) {
           height="1120"
           preserveAspectRatio="xMidYMid meet"
         />
-        <g fontFamily="Consolas, 'Courier New', monospace" fontWeight="600" fill="#1f2a1f">
+        {/* Pastikan fontFamily di sini adalah 'Digital-7 Mono' sesuai dengan CSS */}
+        <g fontFamily="'Digital-7 Mono', monospace" fontWeight="normal" fill="#1f2a1f">
           <text x="360" y="380" fontSize="90">{line(v, 1, "V")}</text>
           <text x="360" y="500" fontSize="90">{line(a, 1, "A")}</text>
           <text x="360" y="610" fontSize="90">{line(kw, 2, "kW")}</text>
