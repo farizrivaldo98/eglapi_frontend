@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Text, Badge, Button, SimpleGrid, useToast } from "@chakra-ui/react";
-import pm5350Photo from "./assets/scada/schneider-pm5350.png";
+import pm5350Photo from "../assets/scada/schneider-pm5350.png";
 
 // ═══════════════════════════════════════════════════════════════════
 // EnergyMeter — Tab "Energy Meter" pada Scadamonitor.jsx
