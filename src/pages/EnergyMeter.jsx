@@ -279,31 +279,16 @@ export default function EnergyMeter() {
 // PowerMeterDisplay — foto Schneider PM5350, value ditulis di atas
 // layar LCD kosong pakai <text> SVG (posisi dikalibrasi ke foto asli).
 // ═══════════════════════════════════════════════════════════════════
+// function PowerMeterDisplay({ label, v, a, kw, kwh }) {
+//   const line = (val, digits, unit) =>
+//     typeof val === "number" ? `${val.toFixed(digits)} ${unit}` : `— ${unit}`;
 function PowerMeterDisplay({ label, v, a, kw, kwh }) {
-  const line = (val, digits, unit) =>
-    typeof val === "number" ? `${val.toFixed(digits)} ${unit}` : `— ${unit}`;
+  // Fungsi ini sekarang hanya memformat angkanya saja, tanpa satuan
+  const formatVal = (val, digits) =>
+    typeof val === "number" ? val.toFixed(digits) : "—";
 
   return (
-    // <div className="flex flex-col items-center gap-1">
-    //   <svg viewBox="0 0 1280 1120" className="w-full h-auto" style={{ maxWidth: 300 }}>
-    //     <image
-    //       href={pm5350Photo}
-    //       x="0"
-    //       y="0"
-    //       width="1280"
-    //       height="1120"
-    //       preserveAspectRatio="xMidYMid meet"
-    //     />
-    //     <g fontFamily="Consolas, 'Courier New', monospace" fontWeight="600" fill="#1f2a1f">
-    //       <text x="360" y="380" fontSize="90">{line(v, 1, "V")}</text>
-    //       <text x="360" y="500" fontSize="90">{line(a, 1, "A")}</text>
-    //       <text x="360" y="610" fontSize="90">{line(kw, 2, "kW")}</text>
-    //       <text x="360" y="720" fontSize="90">{line(kwh, 1, "kWh")}</text>
-    //     </g>
-    //   </svg>
-    //   <Text fontSize="sm" fontWeight="bold">{label}</Text>
-    // </div>
-    <div className="flex flex-col items-center gap-1">
+   <div className="flex flex-col items-center gap-1">
       <svg viewBox="0 0 1280 1120" className="w-full h-auto" style={{ maxWidth: 300 }}>
         <image
           href={pm5350Photo}
@@ -313,12 +298,20 @@ function PowerMeterDisplay({ label, v, a, kw, kwh }) {
           height="1120"
           preserveAspectRatio="xMidYMid meet"
         />
-        {/* Pastikan fontFamily di sini adalah 'Digital-7 Mono' sesuai dengan CSS */}
         <g fontFamily="'Digital-7 Mono', monospace" fontWeight="normal" fill="#1f2a1f">
-          <text x="360" y="380" fontSize="90">{line(v, 1, "V")}</text>
-          <text x="360" y="500" fontSize="90">{line(a, 1, "A")}</text>
-          <text x="360" y="610" fontSize="90">{line(kw, 2, "kW")}</text>
-          <text x="360" y="720" fontSize="90">{line(kwh, 1, "kWh")}</text>
+          
+          {/* Kolom Angka - Dimulai di kordinat X=280 */}
+          <text x="280" y="380" fontSize="100">{formatVal(v, 1)}</text>
+          <text x="280" y="500" fontSize="100">{formatVal(a, 1)}</text>
+          <text x="280" y="610" fontSize="100">{formatVal(kw, 2)}</text>
+          <text x="280" y="720" fontSize="100">{formatVal(kwh, 1)}</text>
+
+          {/* Kolom Satuan - Sejajar lurus di kordinat X=820 */}
+          <text x="820" y="380" fontSize="100">V</text>
+          <text x="820" y="500" fontSize="100">A</text>
+          <text x="820" y="610" fontSize="100">KW</text>
+          <text x="820" y="720" fontSize="100">KWH</text>
+          
         </g>
       </svg>
       <Text fontSize="sm" fontWeight="bold">{label}</Text>
