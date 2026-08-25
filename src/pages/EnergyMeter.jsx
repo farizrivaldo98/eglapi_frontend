@@ -269,7 +269,7 @@ export default function EnergyMeter() {
                   v={data[t.v]}
                   a={data[t.a]}
                   kw={data[t.kw]}
-                  kwh={formatKwh(data[t.kwh])}
+                  kwh={data[t.kwh]}
                   
                 />
               </div>
@@ -310,7 +310,7 @@ function PowerMeterDisplay({ label, v, a, kw, kwh }) {
           <text x="380" y="380" fontSize="100">{formatVal(v, 1)}</text>
           <text x="380" y="500" fontSize="100">{formatVal(a, 1)}</text>
           <text x="380" y="610" fontSize="100">{formatVal(kw, 2)}</text>
-          <text x="380" y="720" fontSize="100">{formatVal(kwh, 1)}</text>
+          <text x="380" y="720" fontSize="100">{formatKwh({formatVal(kwh, 1)})}</text>
 
           {/* Kolom Satuan - Sejajar lurus di kordinat X=820 */}
           <text x="820" y="380" fontSize="100">V</text>
