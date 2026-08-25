@@ -295,10 +295,10 @@ function PowerMeterDisplay({ label, v, a, kw, kwh }) {
           preserveAspectRatio="xMidYMid meet"
         />
         <g fontFamily="Consolas, 'Courier New', monospace" fontWeight="600" fill="#1f2a1f">
-          <text x="360" y="380" fontSize="100">{line(v, 1, "V")}</text>
-          <text x="360" y="500" fontSize="100">{line(a, 1, "A")}</text>
-          <text x="360" y="610" fontSize="100">{line(kw, 2, "kW")}</text>
-          <text x="360" y="720" fontSize="100">{line(kwh, 1, "kWh")}</text>
+          <text x="360" y="380" fontSize="90">{line(v, 1, "V")}</text>
+          <text x="360" y="500" fontSize="90">{line(a, 1, "A")}</text>
+          <text x="360" y="610" fontSize="90">{line(kw, 2, "kW")}</text>
+          <text x="360" y="720" fontSize="90">{line(kwh, 1, "kWh")}</text>
         </g>
       </svg>
       <Text fontSize="sm" fontWeight="bold">{label}</Text>
