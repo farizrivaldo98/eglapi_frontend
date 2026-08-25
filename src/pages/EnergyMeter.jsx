@@ -409,7 +409,7 @@ function FlowMeterDisplay({ uid, label, flow, status, total, unit = "m³/h" }) {
 
           {/* SCADA value area inside LCD — live data */}
           <g fontFamily="Consolas, 'Courier New', monospace" fill="#0b2c00">
-            <text x="270" y="285" fontSize="40" fontWeight="700" fill="#4A4A4A">Flow</text>
+            <text x="270" y="285" fontSize="40" fontWeight="700" fill="#525252">Flow</text>
             <text x="380" y="285" fontSize="40" fontWeight="700" fill="#4A4A4A">{flowText} {unit}</text>
             {/* <text x="270" y="309" fontSize="30">Rate</text>
             <text x="380" y="309" fontSize="30" fontWeight="700" fill={statusColor}>{statusText}</text> */}
@@ -439,7 +439,7 @@ function FlowMeterDisplay({ uid, label, flow, status, total, unit = "m³/h" }) {
           <g>
             <rect x="320" y="695" width="260" height="46" rx="4" fill="#e6ddc7" stroke="#a2a0a0" strokeWidth="2" />
             <polygon points="343,705 357,730 329,730" fill="#f2c400" stroke="#4d4d4d" strokeWidth="2" />
-            <text x="352" y="726" textAnchor="middle" fontFamily="Arial" fontSize="15" fontWeight="700">!</text>
+            <text x="445" y="726" textAnchor="middle" fontFamily="Arial" fontSize="15" fontWeight="700">!</text>
             <text x="445" y="717" textAnchor="middle" fontFamily="Arial" fontSize="10" fill="#414141">CAUTION</text>
             <text x="445" y="731" textAnchor="middle" fontFamily="Arial" fontSize="7" fill="#414141">Do not open the cover</text>
           </g>
