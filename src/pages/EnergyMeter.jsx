@@ -434,10 +434,10 @@ function FlowMeterDisplay({ uid, label, flow, status, total, unit = "m³/h" }) {
               <rect x="252" y="600" width="62" height="48" rx="22" /><rect x="334" y="600" width="62" height="48" rx="22" /><rect x="416" y="600" width="62" height="48" rx="22" /><rect x="498" y="600" width="84" height="48" rx="22" />
             </g>
             <g fill="#f0f3f4" fontWeight="700">
-              <text x="283" y="436">7</text><text x="365" y="436">8</text><text x="447" y="436">9</text><text x="540" y="436" fontSize="16">MENU</text>
+              <text x="283" y="436">7</text><text x="365" y="436">8</text><text x="447" y="436">9</text><text x="540" y="436" fontSize="20">MENU</text>
               <text x="283" y="501">4</text><text x="365" y="501">5</text><text x="447" y="501">6</text><text x="540" y="501" fontSize="20">▲/+</text>
               <text x="283" y="566">1</text><text x="365" y="566">2</text><text x="447" y="566">3</text><text x="540" y="566" fontSize="20">▼/−</text>
-              <text x="283" y="631">0</text><text x="365" y="631">.</text><text x="447" y="631">◀</text><text x="540" y="631" fontSize="16" fill="#ffffff">ENT</text>
+              <text x="283" y="631">0</text><text x="365" y="631">.</text><text x="447" y="631">◀</text><text x="540" y="631" fontSize="20" fill="#ffffff">ENT</text>
             </g>
             <rect x="498" y="600" width="84" height="48" rx="22" fill="#9c2f30" stroke="#c98c8c" strokeWidth="3" />
             <text x="540" y="631" fill="#fff" fontWeight="700" fontSize="16">ENT</text>
