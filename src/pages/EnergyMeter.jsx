@@ -252,7 +252,7 @@ export default function EnergyMeter() {
       {/* ── Power Meter ──────────────────────────────────────────── */}
       <div className="mx-6 mb-6">
         <Text fontSize="md" fontWeight="bold" mb={3}>
-          Power Meter — Schneider PM5350
+          Power Meter
         </Text>
         <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 5 }} spacing={6}>
           {POWER_METERS.map(({ tag, label }) => {
