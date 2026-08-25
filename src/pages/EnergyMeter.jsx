@@ -264,7 +264,8 @@ export default function EnergyMeter() {
                   v={data[t.v]}
                   a={data[t.a]}
                   kw={data[t.kw]}
-                  kwh={data[t.kwh]}
+                  // kwh={data[t.kwh]}
+                  kwh={data[t.kwh] !== undefined ? Number(data[t.kwh]).toLocaleString('en-US') : data[t.kwh]}
                 />
               </div>
             );
