@@ -421,8 +421,8 @@ function FlowMeterDisplay({ uid, label, flow, status, total, unit = "m³/h" }) {
             <text x="380" y="285" fontSize="40" fontWeight="700" fill="#525252e1">{flowText} {unit}</text>
             {/* <text x="270" y="309" fontSize="30">Rate</text>
             <text x="380" y="309" fontSize="30" fontWeight="700" fill={statusColor}>{statusText}</text> */}
-            <text x="270" y="340" fontSize="40" fontWeight="700" fill="#4A4A4A">NET</text>  
-            <text x="380" y="340" fontSize="40" fontWeight="700" fill="#4A4A4A">{totalText} m³</text>
+            <text x="270" y="340" fontSize="40" fontWeight="700" fill="#525252e1">NET</text>  
+            <text x="380" y="340" fontSize="40" fontWeight="700" fill="#525252e1">{totalText} m³</text>
           </g>
 
           {/* keypad (dekoratif, statis) */}
