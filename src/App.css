@@ -43,3 +43,8 @@
   font-weight: normal;
   font-style: normal;
 }
+
+@font-face {
+  font-family: 'Segmen7';
+  src: url('/public/fonts/segmen7.ttf') format('truetype');
+}
