@@ -43,11 +43,11 @@ const PERIOD_LABELS = {
 };
 
 const METERS = [
-  //{ key: "trane1", label: "Train 1", colorLight: "#1e90ff", colorDark: "#00bfff" },
-  //{ key: "trane2", label: "Train 2", colorLight: "#32cd32", colorDark: "#00ff00" },
-  { key: "SW_Supplay", label: "SW_Output", colorLight: "#cd3232", colorDark: "#cd3232" },
-  { key: "PDAM_Supplay", label: "PDAM_Output", colorLight: "#cacd32", colorDark: "#cacd32" },  
-  { key: "PWG_Return", label: "PWG_Input", colorLight: "#cd32b3", colorDark: "#cd32b3" }, 
+  //{ key: "trane1", label: "Train 1", colorLight: "#cacd32", colorDark: "#cacd32" },
+  //{ key: "trane2", label: "Train 2", colorLight: "#cd3232", colorDark: "#cd3232" },
+  { key: "SW_Supplay", label: "SW_Output", colorLight:  "#32cd32", colorDark: "#00ff00" },
+  { key: "PDAM_Supplay", label: "PDAM_Output", colorLight:  "#1e90ff", colorDark: "#00bfff" },  
+  { key: "PWG_Return", label: "PWG_Input", colorLight: "#e77b23", colorDark: "#e77b23" }, 
 
 
 ];
