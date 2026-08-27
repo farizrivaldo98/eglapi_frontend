@@ -63,6 +63,9 @@ const POWER_METERS = [
   { tag: "SDP1-OFC45", label: "SDP1-OFC45" },
   { tag: "SDP2-OFC45", label: "SDP2-OFC45" },
   { tag: "SDP-MC", label: "SDP-MC" },
+    { tag: "PP_HVAC_Mezzanine3", label: "PP_HVAC_Mezzanine3" },
+  { tag: "PP_LP", label: "PP_LP"},
+  { tag: "SDP2_Pro3", label: "SDP2_Pro3" },
 ];
 
 const getFlowTags = (tag) => ({
