@@ -38,7 +38,7 @@ export const METERS = [
   { key: "SDP_MC", label: "SDP MICRO", colorLight: "#d1c543", colorDark: "#d1c543" },
   { key: "PP_HVAC_Mezzanine3", label: "PP_HVAC_Mezzanine3", colorLight: "#5d43d1", colorDark: "#5d43d1" },
   { key: "SDP PP_LP", label: "SDP PP_LP", colorLight: "#d14343", colorDark: "#d14343" },
-  { key: "SDP2_Pro3 14", label: "SDP2_Pro3 14", colorLight: "#43d1b2", colorDark: "#43d1b2" },
+  { key: "SDP2_Pro3 14", label: "SDP2_Pro3", colorLight: "#43d1b2", colorDark: "#43d1b2" },
 
 
 
