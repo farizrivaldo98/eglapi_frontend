@@ -10,7 +10,7 @@ const navigation = [
   { name: "Production",  path: "/production" },
   { name: "Chiller",    path: "/Chiller" },
   { name: "Scadamonitor", path: "/Scadamonitor"},
-  { name: "Energy", path: "/Energy"}
+  { name: "Energy", path: "/Energy"},
   { name: "Machine", path: "/Machine"}
 
   
