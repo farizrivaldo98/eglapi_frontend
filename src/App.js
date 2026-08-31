@@ -32,7 +32,7 @@ const LEVEL_PAGE = {
   production: "Production",
   utility: "Utility",
   Chiller: "Chiller",
-  Energy : "Energy"
+  Energy : "Energy",
   Machine:"Machine"
 };
 
