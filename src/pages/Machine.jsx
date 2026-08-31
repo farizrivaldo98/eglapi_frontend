@@ -470,7 +470,7 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
             </Select>
           </FormControl>
           <FormControl w="160px">
-            <FormLabel fontSize="sm">Threshold (RUNNING jika &gt;)</FormLabel>
+            <FormLabel fontSize="sm">Threshold</FormLabel>
             <NumberInput size="sm" value={threshold} onChange={(_, v) => setThreshold(Number.isFinite(v) ? v : 0)}>
               <NumberInputField />
             </NumberInput>
