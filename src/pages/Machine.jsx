@@ -454,7 +454,7 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
   return (
     <div className="flex flex-col gap-6">
       {/* Setingan deteksi RUNNING + shift */}
-      <div className="bg-card rounded-md shadow-lg p-4 flex flex-col gap-4">
+      {/* <div className="bg-card rounded-md shadow-lg p-4 flex flex-col gap-4">
         <Text fontWeight="bold">Pengaturan Deteksi Running</Text>
         <div className="flex gap-4 flex-wrap items-end">
           <FormControl w="220px">
@@ -503,7 +503,7 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
             Simpan Shift
           </Button>
         </div>
-      </div>
+      </div> */}
 
       {/* Rentang tanggal + mode tampilan */}
       <div className="flex items-end gap-3 flex-wrap">
