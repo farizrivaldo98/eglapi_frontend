@@ -30,6 +30,21 @@ const CanvasJSChart = CanvasJSReact.CanvasJSChart;
 // Shift: 1 hari dibagi 3 shift, jam mulai/selesai tiap shift bisa diseting
 // sendiri (disimpan di backend, dipakai lagi tiap kali halaman dibuka).
 // Shift yang nyebrang tengah malam (mis. 22:00-06:00) didukung.
+//
+// ── CHANGELOG (revisi ini) ──────────────────────────────────────────
+// 1. MachineRealtime: value WS sekarang di-MERGE ke state lama (bukan
+//    ditimpa penuh) dan angka dipaksa lewat Number(...)+Number.isFinite
+//    (bukan typeof === "number"), biar tahan kalau Node-RED sesekali
+//    ngirim payload sebagian atau angka berupa string. Ditambah panel
+//    "Kenapa Value Gak Muncul?" yang nampilin URL WS, jumlah pesan
+//    masuk, payload mentah terakhir, dan key mana yang belum pernah
+//    ketemu di payload - biar gampang bedain masalah "koneksi putus"
+//    vs "nama key gak cocok sama getMachineConfig".
+// 2. MachineHistorical: grid banyak chart garis (satu per parameter)
+//    diganti jadi SATU chart batang, tiap parameter terpilih jadi satu
+//    grup di sumbu-X dengan 2 batang (Run/hijau vs Stop/merah) berisi
+//    nilai rata-ratanya - pakai acuan RUNNING/STOP yang sama dengan tab
+//    Running Hours (flowCol + threshold).
 // ═══════════════════════════════════════════════════════════════════
 
 // TODO: sesuaikan sama base URL backend Express kamu (samain kayak axios
@@ -136,7 +151,7 @@ export default function Machine() {
               <MachineRealtime cfg={cfg} wsUrl={MACHINE_WS_URLS[machineKey]} flowCol={flowCol} threshold={threshold} />
             </TabPanel>
             <TabPanel px={0}>
-              <MachineHistorical cfg={cfg} machineKey={machineKey} />
+              <MachineHistorical cfg={cfg} machineKey={machineKey} flowCol={flowCol} threshold={threshold} />
             </TabPanel>
             <TabPanel px={0}>
               <MachineRunningHours
@@ -163,23 +178,38 @@ function MachineRealtime({ cfg, wsUrl, flowCol, threshold }) {
   const [data, setData] = useState({});
   const [status, setStatus] = useState("down");
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [lastRaw, setLastRaw] = useState(null);
+  const [msgCount, setMsgCount] = useState(0);
+  const [showDebug, setShowDebug] = useState(false);
   const wsRef = useRef(null);
   const toast = useToast();
 
   const connectWS = useCallback(() => {
     if (!wsUrl) return;
     setStatus("connecting");
+    setMsgCount(0);
     wsRef.current?.close();
     const ws = new WebSocket(wsUrl);
-    ws.onopen = () => setStatus("live");
-    ws.onclose = () => setStatus("down");
-    ws.onerror = () => setStatus("down");
+    ws.onopen = () => {
+      if (wsRef.current === ws) setStatus("live");
+    };
+    ws.onclose = () => {
+      if (wsRef.current === ws) setStatus("down");
+    };
+    ws.onerror = () => {
+      if (wsRef.current === ws) setStatus("down");
+    };
     ws.onmessage = (event) => {
+      if (wsRef.current !== ws) return; // buang pesan dari socket lama pas lagi reconnect
       try {
         const payload = JSON.parse(event.data);
-        if (payload.data) {
-          setData(payload.data);
+        if (payload && payload.data && typeof payload.data === "object") {
+          // MERGE ke data lama (bukan ditimpa penuh) - kalau Node-RED kirim
+          // payload sebagian, parameter lain yang udah kebaca gak balik "—"
+          setData((prev) => ({ ...prev, ...payload.data }));
+          setLastRaw(payload.data);
           setLastUpdate(Date.now());
+          setMsgCount((c) => c + 1);
         }
       } catch (e) {
         console.error("WS Parse Error:", e);
@@ -190,12 +220,21 @@ function MachineRealtime({ cfg, wsUrl, flowCol, threshold }) {
 
   useEffect(() => {
     connectWS();
-    return () => wsRef.current?.close();
+    return () => {
+      wsRef.current?.close();
+      wsRef.current = null;
+    };
   }, [connectWS]);
 
   const flowParam = cfg.params.find((p) => p.col === Number(flowCol));
-  const flowValue = flowParam ? data[flowParam.key] : undefined;
-  const isRunning = typeof flowValue === "number" && flowValue > threshold;
+  // Number(...) + Number.isFinite lebih tahan banting daripada typeof === "number":
+  // tetap kebaca walau Node-RED/PLC gateway ngirim angka sebagai string (mis. "23.5")
+  const flowValueNum = flowParam ? Number(data[flowParam.key]) : NaN;
+  const isRunning = Number.isFinite(flowValueNum) && flowValueNum > threshold;
+
+  // Parameter yang key-nya (dari getMachineConfig) belum PERNAH ketemu di payload
+  // WS mana pun sejak connect - kandidat kuat penyebab value gak muncul.
+  const missingKeys = cfg.params.filter((p) => !(p.key in data));
 
   return (
     <div className="flex flex-col gap-4">
@@ -229,31 +268,98 @@ function MachineRealtime({ cfg, wsUrl, flowCol, threshold }) {
             Data terakhir: {new Date(lastUpdate).toLocaleTimeString("id-ID")}
           </Text>
         )}
+
+        <Text fontSize="xs" color="gray.500">Pesan diterima: {msgCount}</Text>
+
+        <Button size="xs" variant="outline" onClick={() => setShowDebug((s) => !s)}>
+          {showDebug ? "Sembunyikan Debug" : "Kenapa Value Gak Muncul?"}
+        </Button>
       </div>
 
-      <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={4}>
-        {cfg.params.map((p) => (
-          <div key={p.key} className="bg-card rounded-md shadow-lg p-4">
-            <Stat>
-              <StatLabel>{p.label}</StatLabel>
-              <StatNumber>
-                {typeof data[p.key] === "number" ? data[p.key].toFixed(2) : "—"}{" "}
-                <Text as="span" fontSize="sm" color="gray.500">{p.unit}</Text>
-              </StatNumber>
-              <Text fontSize="xs" color="gray.400">{p.tag}</Text>
-            </Stat>
+      {status === "down" && (
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-md p-3 text-sm">
+          Gagal konek ke <code>{wsUrl || "(wsUrl kosong - machine key ini gak ada di MACHINE_WS_URLS)"}</code>.
+          Pastikan Node-RED nyala dan browser bisa akses IP:port itu (bukan diblok firewall, atau halaman
+          dibuka lewat https sedangkan wsUrl masih ws:// biasa - browser modern suka blokir itu).
+        </div>
+      )}
+      {status === "live" && msgCount === 0 && (
+        <div className="bg-orange-50 border border-orange-200 text-orange-700 rounded-md p-3 text-sm">
+          WebSocket sudah <b>tersambung</b> ke <code>{wsUrl}</code>, tapi belum ada satu pun pesan data yang
+          masuk. Berarti bukan masalah di halaman ini - cek flow Node-RED sebelum node "WS Out": apakah MQTT
+          topic FBD_GEA beneran lagi ngirim, atau apakah node function parsingnya kena "Payload FBD_GEA tidak
+          valid" (lihat debug/log node di Node-RED).
+        </div>
+      )}
+
+      {showDebug && (
+        <div className="bg-card rounded-md shadow-lg p-4 flex flex-col gap-3">
+          <Text fontWeight="bold">Debug Koneksi Realtime</Text>
+          <Text fontSize="sm">
+            URL WebSocket: <code>{wsUrl || "(tidak ada)"}</code>
+          </Text>
+          <Text fontSize="sm">
+            Status: <b>{status.toUpperCase()}</b> · Total pesan diterima sejak connect terakhir: <b>{msgCount}</b>
+          </Text>
+
+          {missingKeys.length > 0 && (
+            <div>
+              <Text fontSize="sm" color="orange.500" fontWeight="semibold" mb={1}>
+                {missingKeys.length} dari {cfg.params.length} parameter belum pernah ketemu key-nya di
+                payload WS. Cek lagi apakah nama key ini sama persis (huruf besar/kecil termasuk) dengan
+                field yang dikirim function parse di Node-RED:
+              </Text>
+              <Table size="sm">
+                <Thead><Tr><Th>Parameter</Th><Th>Key yang dicari (dari getMachineConfig)</Th></Tr></Thead>
+                <Tbody>
+                  {missingKeys.map((p) => (
+                    <Tr key={p.key}><Td>{p.label}</Td><Td><code>{p.key}</code></Td></Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </div>
+          )}
+
+          <div>
+            <Text fontSize="sm" fontWeight="semibold" mb={1}>Payload data terakhir yang diterima dari WS:</Text>
+            <pre className="text-xs bg-background rounded p-2 overflow-x-auto">
+              {lastRaw ? JSON.stringify(lastRaw, null, 2) : "(belum ada pesan masuk)"}
+            </pre>
           </div>
-        ))}
+        </div>
+      )}
+
+      <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={4}>
+        {cfg.params.map((p) => {
+          const num = Number(data[p.key]);
+          const display = Number.isFinite(num) ? num.toFixed(2) : "—";
+          return (
+            <div key={p.key} className="bg-card rounded-md shadow-lg p-4">
+              <Stat>
+                <StatLabel>{p.label}</StatLabel>
+                <StatNumber>
+                  {display}{" "}
+                  <Text as="span" fontSize="sm" color="gray.500">{p.unit}</Text>
+                </StatNumber>
+                <Text fontSize="xs" color="gray.400">{p.tag}</Text>
+              </Stat>
+            </div>
+          );
+        })}
       </SimpleGrid>
     </div>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// MachineHistorical — grafik historikal tiap parameter (line chart per
-// parameter, bisa pilih parameter mana yang mau ditampilkan).
+// MachineHistorical — SATU grafik batang (bukan grid banyak chart line
+// per parameter kayak sebelumnya). Tiap parameter yang dipilih jadi
+// satu grup di sumbu-X, isinya 2 batang berdampingan: rata-rata nilai
+// parameter itu saat mesin RUNNING (hijau) vs saat STOP (merah).
+// Acuan RUNNING/STOP dipakai sama persis kayak tab Realtime & Running
+// Hours (parameter acuan `flowCol` + `threshold`, dikirim dari parent).
 // ═══════════════════════════════════════════════════════════════════
-function MachineHistorical({ cfg, machineKey }) {
+function MachineHistorical({ cfg, machineKey, flowCol, threshold }) {
   const toast = useToast();
   const [start, setStart] = useState(`${daysAgoStr(1)}T00:00`);
   const [finish, setFinish] = useState(`${todayStr()}T23:59`);
@@ -287,6 +393,75 @@ function MachineHistorical({ cfg, machineKey }) {
   const toggleKey = (key) => {
     setSelectedKeys((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
+
+  // Parameter acuan buat nentuin RUNNING/STOP tiap baris histori.
+  const flowParam = cfg.params.find((p) => p.col === Number(flowCol));
+
+  // Rata-rata tiap parameter TERPILIH, dipecah jadi grup Run vs Stop.
+  const runStopStats = useMemo(() => {
+    return cfg.params
+      .filter((p) => selectedKeys.includes(p.key))
+      .map((p) => {
+        const runVals = [];
+        const stopVals = [];
+        rows.forEach((r) => {
+          const flowVal = flowParam ? Number(r[flowParam.key]) : NaN;
+          const running = Number.isFinite(flowVal) && flowVal > threshold;
+          const val = Number(r[p.key]);
+          if (!Number.isFinite(val)) return;
+          (running ? runVals : stopVals).push(val);
+        });
+        const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+        return {
+          key: p.key,
+          label: p.label,
+          unit: p.unit,
+          avgRun: avg(runVals),
+          avgStop: avg(stopVals),
+          nRun: runVals.length,
+          nStop: stopVals.length,
+        };
+      });
+  }, [cfg.params, selectedKeys, rows, flowParam, threshold]);
+
+  const barChartOptions = useMemo(() => ({
+    animationEnabled: true,
+    theme: "light2",
+    title: { text: "Rata-rata Parameter: Run vs Stop", fontSize: 14 },
+    subtitles: flowParam
+      ? [{ text: `Acuan RUNNING: ${flowParam.label} > ${threshold} ${flowParam.unit}`, fontSize: 11 }]
+      : [],
+    axisX: { labelWrap: true, labelFontSize: 11 },
+    axisY: { title: "Nilai (satuan beda-beda per parameter, lihat angka di atas tiap batang)" },
+    toolTip: { shared: true },
+    legend: { cursor: "pointer" },
+    data: [
+      {
+        type: "column",
+        name: "Run",
+        showInLegend: true,
+        color: RUN_COLOR,
+        indexLabel: "{y}",
+        indexLabelFontSize: 10,
+        dataPoints: runStopStats.map((r) => ({
+          label: `${r.label}${r.unit ? ` (${r.unit})` : ""}`,
+          y: r.avgRun !== null ? Number(r.avgRun.toFixed(2)) : 0,
+        })),
+      },
+      {
+        type: "column",
+        name: "Stop",
+        showInLegend: true,
+        color: STOP_COLOR,
+        indexLabel: "{y}",
+        indexLabelFontSize: 10,
+        dataPoints: runStopStats.map((r) => ({
+          label: `${r.label}${r.unit ? ` (${r.unit})` : ""}`,
+          y: r.avgStop !== null ? Number(r.avgStop.toFixed(2)) : 0,
+        })),
+      },
+    ],
+  }), [runStopStats, flowParam, threshold]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -322,31 +497,45 @@ function MachineHistorical({ cfg, machineKey }) {
 
       {loading ? (
         <div className="flex justify-center p-8"><Spinner /></div>
+      ) : rows.length === 0 ? (
+        <div className="bg-card rounded-md shadow-lg p-8 text-center text-sm text-gray-500">
+          Belum ada data historikal di rentang tanggal ini.
+        </div>
+      ) : runStopStats.length === 0 ? (
+        <div className="bg-card rounded-md shadow-lg p-8 text-center text-sm text-gray-500">
+          Pilih minimal satu parameter di atas buat ditampilkan.
+        </div>
       ) : (
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
-          {cfg.params
-            .filter((p) => selectedKeys.includes(p.key))
-            .map((p) => (
-              <div key={p.key} className="bg-card rounded-md shadow-lg p-2">
-                <CanvasJSChart
-                  options={{
-                    animationEnabled: true,
-                    theme: "light2",
-                    title: { text: `${p.label} (${p.unit})`, fontSize: 14 },
-                    axisX: { valueFormatString: "DD MMM HH:mm" },
-                    axisY: { title: p.unit },
-                    data: [
-                      {
-                        type: "line",
-                        xValueType: "dateTime",
-                        dataPoints: rows.map((r) => ({ x: new Date(r.date), y: r[p.key] })),
-                      },
-                    ],
-                  }}
-                />
-              </div>
-            ))}
-        </SimpleGrid>
+        <>
+          <div className="bg-card rounded-md shadow-lg p-2">
+            <CanvasJSChart options={barChartOptions} />
+          </div>
+
+          <div className="bg-card rounded-md shadow-lg p-4 overflow-x-auto">
+            <Table size="sm">
+              <Thead>
+                <Tr>
+                  <Th>Parameter</Th>
+                  <Th isNumeric>Avg Run</Th>
+                  <Th isNumeric>Avg Stop</Th>
+                  <Th isNumeric># data Run</Th>
+                  <Th isNumeric># data Stop</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {runStopStats.map((r) => (
+                  <Tr key={r.key}>
+                    <Td>{r.label}{r.unit ? ` (${r.unit})` : ""}</Td>
+                    <Td isNumeric>{r.avgRun !== null ? r.avgRun.toFixed(2) : "—"}</Td>
+                    <Td isNumeric>{r.avgStop !== null ? r.avgStop.toFixed(2) : "—"}</Td>
+                    <Td isNumeric>{r.nRun}</Td>
+                    <Td isNumeric>{r.nStop}</Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </div>
+        </>
       )}
     </div>
   );
