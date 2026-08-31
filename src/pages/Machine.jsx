@@ -6,8 +6,8 @@ import {
   Stat, StatLabel, StatNumber, Divider, RadioGroup, Radio, Stack,
   Table, Thead, Tbody, Tr, Th, Td, Spinner,
 } from "@chakra-ui/react";
-import CanvasJSReact from "@canvasjs/react-charts"; // TODO: samain sama import CanvasJS yang udah dipakai di halaman lain kalau beda
-
+//import CanvasJSReact from "@canvasjs/react-charts"; // TODO: samain sama import CanvasJS yang udah dipakai di halaman lain kalau beda
+import CanvasJSReact from "../canvasjs.react";
 const CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -34,7 +34,7 @@ const CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
 // TODO: sesuaikan sama base URL backend Express kamu (samain kayak axios
 // instance yang udah ada di halaman lain, kalau ada).
-const API_BASE_URL = "http://10.163.0.66:3001";
+const API_BASE_URL = "http://10.163.0.66:8002";
 
 // Path WebSocket Node-RED per mesin - samain pola sama ENERGY_WS_URL di
 // EnergyMeter.jsx. Tambah entry baru kalau nambah machine key baru di
