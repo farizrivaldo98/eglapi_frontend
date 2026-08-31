@@ -34,7 +34,7 @@ const CanvasJSChart = CanvasJSReact.CanvasJSChart;
 
 // TODO: sesuaikan sama base URL backend Express kamu (samain kayak axios
 // instance yang udah ada di halaman lain, kalau ada).
-const API_BASE_URL = "http://10.163.0.66:8002";
+const API_BASE_URL = "http://10.163.0.66:8002/part";
 
 // Path WebSocket Node-RED per mesin - samain pola sama ENERGY_WS_URL di
 // EnergyMeter.jsx. Tambah entry baru kalau nambah machine key baru di
