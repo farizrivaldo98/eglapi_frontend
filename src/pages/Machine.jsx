@@ -99,7 +99,7 @@ export default function Machine() {
   // Deteksi RUNNING/STOP - dipakai bareng di tab Realtime & Running Hours,
   // jadi disimpan di parent supaya konsisten.
   const [flowCol, setFlowCol] = useState(0);
-  const [threshold, setThreshold] = useState(200);
+  const [threshold, setThreshold] = useState(0);
   useEffect(() => {
     if (cfg) {
       setFlowCol(cfg.defaultFlowCol ?? 0);
