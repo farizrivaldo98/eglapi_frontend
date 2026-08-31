@@ -103,7 +103,7 @@ export default function Machine() {
   useEffect(() => {
     if (cfg) {
       setFlowCol(cfg.defaultFlowCol ?? 0);
-      setThreshold(cfg.defaultThreshold ?? 200);
+      setThreshold(cfg.defaultThreshold ?? 0);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cfg?.key]);
