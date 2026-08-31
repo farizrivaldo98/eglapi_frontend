@@ -11,6 +11,8 @@ const navigation = [
   { name: "Chiller",    path: "/Chiller" },
   { name: "Scadamonitor", path: "/Scadamonitor"},
   { name: "Energy", path: "/Energy"}
+  { name: "Machine", path: "/Machine"}
+
   
 ];
 

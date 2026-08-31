@@ -21,6 +21,7 @@ import AuditTrail from "./pages/AuditTrail";
 import Administrator from "./pages/Administrator";
 import ProtectedRoute from "./components/ProtectedRoute"; // ← BARU
 import Energy from "./pages/Energy"
+import Machine from "./pages/Machine"
 import axios from "axios"; // ← BARU
 
 const API = "http://10.163.0.66:8002"; // ← BARU, samain kaya di PageManagement.jsx
@@ -32,6 +33,7 @@ const LEVEL_PAGE = {
   utility: "Utility",
   Chiller: "Chiller",
   Energy : "Energy"
+  Machine:"Machine"
 };
 
 function App() {
@@ -115,6 +117,18 @@ function App() {
               allow={canAccess(LEVEL_PAGE.maintenance)}
             >
               <Maintenance />
+            </ProtectedRoute>
+          }
+        />
+            <Route
+          path="/Machine"
+          element={
+            <ProtectedRoute
+              isLoggedIn={isLoggedIn}
+              ready={pageAccessReady}
+              allow={canAccess(LEVEL_PAGE.maintenance)}
+            >
+              <Machine />
             </ProtectedRoute>
           }
         />
