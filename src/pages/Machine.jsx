@@ -220,10 +220,6 @@ function MachineRealtime({ cfg, wsUrl, flowCol, threshold }) {
           <Text fontSize="sm" fontWeight="semibold">{status.toUpperCase()}</Text>
         </div>
 
-        <Badge colorScheme={isRunning ? "green" : "red"} fontSize="sm" px={2} py={1}>
-          {isRunning ? "RUNNING" : "STOP"}
-        </Badge>
-
         {lastUpdate && (
           <Text fontSize="xs" color="gray.500">
             Data terakhir: {new Date(lastUpdate).toLocaleTimeString("id-ID")}
