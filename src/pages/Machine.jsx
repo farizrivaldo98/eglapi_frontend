@@ -46,26 +46,6 @@ const MACHINE_WS_URLS = {
 const RUN_COLOR = "#38a169";
 const STOP_COLOR = "#e53e3e";
 
-const fmtDayLabel = (isoDate) =>
-  new Date(`${isoDate}T00:00:00`).toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
-
-// Legend manual buat chart segmented (rangeColumn 1 series, warna per titik) -
-// legend bawaan CanvasJS cuma baca warna per-series, jadi nggak kepakai di sini.
-function RunStopLegend() {
-  return (
-    <div className="flex items-center justify-center gap-4 text-sm pt-1">
-      <span className="flex items-center gap-1.5">
-        <span className="inline-block w-3 h-3 rounded-sm" style={{ background: RUN_COLOR }} />
-        Run
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className="inline-block w-3 h-3 rounded-sm" style={{ background: STOP_COLOR }} />
-        Stop
-      </span>
-    </div>
-  );
-}
-
 async function apiGet(path, params) {
   const url = new URL(API_BASE_URL + path);
   Object.entries(params || {}).forEach(([k, v]) => {
@@ -304,35 +284,6 @@ function MachineHistorical({ cfg, machineKey }) {
     setSelectedKeys((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
 
-  // Semua parameter yang dicentang digabung jadi 1 chart (beberapa line
-  // series), bukan 1 chart terpisah per parameter. Unit pertama yang muncul
-  // dipakai buat axisY (primary), sisanya (unit lain) ditumpuk ke axisY2
-  // (secondary) - cukup buat 2 kelompok skala; kalau parameter kamu punya
-  // >2 unit yang beda jauh, pilih 2-3 aja lewat badge di atas biar kebaca.
-  const combinedChartOptions = useMemo(() => {
-    const shown = cfg.params.filter((p) => selectedKeys.includes(p.key));
-    const primaryUnit = shown[0]?.unit;
-    return {
-      animationEnabled: true,
-      theme: "light2",
-      title: { text: "Historikal Parameter", fontSize: 14 },
-      zoomEnabled: true,
-      toolTip: { shared: true },
-      legend: { cursor: "pointer" },
-      axisX: { valueFormatString: "DD MMM HH:mm" },
-      axisY: { title: primaryUnit || "" },
-      axisY2: { title: [...new Set(shown.map((p) => p.unit))].filter((u) => u !== primaryUnit).join(" / ") },
-      data: shown.map((p) => ({
-        type: "line",
-        name: `${p.label} (${p.unit})`,
-        showInLegend: true,
-        xValueType: "dateTime",
-        axisYType: p.unit === primaryUnit ? "primary" : "secondary",
-        dataPoints: rows.map((r) => ({ x: new Date(r.date), y: r[p.key] })),
-      })),
-    };
-  }, [cfg.params, selectedKeys, rows]);
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-end gap-3 flex-wrap">
@@ -368,9 +319,30 @@ function MachineHistorical({ cfg, machineKey }) {
       {loading ? (
         <div className="flex justify-center p-8"><Spinner /></div>
       ) : (
-        <div className="bg-card rounded-md shadow-lg p-2">
-          <CanvasJSChart options={combinedChartOptions} />
-        </div>
+        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+          {cfg.params
+            .filter((p) => selectedKeys.includes(p.key))
+            .map((p) => (
+              <div key={p.key} className="bg-card rounded-md shadow-lg p-2">
+                <CanvasJSChart
+                  options={{
+                    animationEnabled: true,
+                    theme: "light2",
+                    title: { text: `${p.label} (${p.unit})`, fontSize: 14 },
+                    axisX: { valueFormatString: "DD MMM HH:mm" },
+                    axisY: { title: p.unit },
+                    data: [
+                      {
+                        type: "line",
+                        xValueType: "dateTime",
+                        dataPoints: rows.map((r) => ({ x: new Date(r.date), y: r[p.key] })),
+                      },
+                    ],
+                  }}
+                />
+              </div>
+            ))}
+        </SimpleGrid>
       )}
     </div>
   );
@@ -435,60 +407,45 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [machineKey]);
 
-  // Grafik "Per Hari": 1 rangeColumn per tanggal, dipecah jadi beberapa
-  // dataPoint (1 per segmen run/stop) yang share x yang sama -> keliatan
-  // sebagai 1 bar yang dipotong-potong warna. y = jam dalam sehari (0-24),
-  // tooltip nunjukin jam jam persis dari segments[].clockStart/clockEnd.
-  const dailyChartOptions = useMemo(() => {
-    const rowsD = result?.daily || [];
-    const dataPoints = rowsD.flatMap((r, i) =>
-      (r.segments || []).map((s) => ({
-        x: i,
-        y: [s.offsetStart, s.offsetEnd],
-        color: s.state === "run" ? RUN_COLOR : STOP_COLOR,
-        label: fmtDayLabel(r.date),
-        toolTipContent: `<b>{label}</b><br/>${s.state === "run" ? "Run" : "Stop"}: ${s.clockStart} - ${s.clockEnd}`,
-      }))
-    );
-    return {
-      animationEnabled: true,
-      theme: "light2",
-      title: { text: "Run vs Stop per Hari", fontSize: 14 },
-      axisX: { interval: 1, labelFormatter: (e) => fmtDayLabel(rowsD[e.value]?.date) },
-      axisY: { title: "Jam", minimum: 0, maximum: 24, interval: 2, suffix: " h" },
-      data: [{ type: "rangeColumn", dataPoints }],
-    };
-  }, [result]);
+  const dailyChartOptions = useMemo(() => ({
+    animationEnabled: true,
+    theme: "light2",
+    title: { text: "Run vs Stop per Hari", fontSize: 14 },
+    axisX: { valueFormatString: "DD MMM" },
+    axisY: { title: "Jam", suffix: " h" },
+    toolTip: { shared: true },
+    legend: { cursor: "pointer" },
+    data: [
+      {
+        type: "column", name: "Run", showInLegend: true, color: RUN_COLOR, xValueType: "dateTime",
+        dataPoints: (result?.daily || []).map((r) => ({ x: new Date(r.date), y: r.runHours })),
+      },
+      {
+        type: "column", name: "Stop", showInLegend: true, color: STOP_COLOR, xValueType: "dateTime",
+        dataPoints: (result?.daily || []).map((r) => ({ x: new Date(r.date), y: r.stopHours })),
+      },
+    ],
+  }), [result]);
 
-  // Grafik "Per Shift": sama polanya, tapi 1 bar per instance shift (tanggal
-  // + nomor shift), bukan agregat 3 bar shift1/2/3. y = jam sejak MULAI
-  // shift (bukan jam-hari-absolut), biar shift yang nyebrang tengah malam
-  // (mis. 22:00-06:00) tetap kegambar lurus 0 -> durasi shift.
-  const shiftChartOptions = useMemo(() => {
-    const instances = result?.shiftDaily || [];
-    const label = (r) => `${fmtDayLabel(r.date)} S${r.shift}`;
-    const dataPoints = instances.flatMap((r, i) =>
-      (r.segments || []).map((s) => ({
-        x: i,
-        y: [s.offsetStart, s.offsetEnd],
-        color: s.state === "run" ? RUN_COLOR : STOP_COLOR,
-        label: label(r),
-        toolTipContent: `<b>{label}</b><br/>${s.state === "run" ? "Run" : "Stop"}: ${s.clockStart} - ${s.clockEnd}`,
-      }))
-    );
-    const maxOffset = instances.reduce(
-      (m, r) => Math.max(m, ...(r.segments || []).map((s) => s.offsetEnd)),
-      1
-    );
-    return {
-      animationEnabled: true,
-      theme: "light2",
-      title: { text: "Run vs Stop per Shift", fontSize: 14 },
-      axisX: { interval: 1, labelFormatter: (e) => label(instances[e.value] || {}) },
-      axisY: { title: "Jam sejak mulai shift", minimum: 0, maximum: maxOffset, suffix: " h" },
-      data: [{ type: "rangeColumn", dataPoints }],
-    };
-  }, [result]);
+  const shiftChartOptions = useMemo(() => ({
+    animationEnabled: true,
+    theme: "light2",
+    title: { text: "Run vs Stop per Shift (total rentang tanggal terpilih)", fontSize: 14 },
+    axisX: { interval: 1 },
+    axisY: { title: "Jam", suffix: " h" },
+    toolTip: { shared: true },
+    legend: { cursor: "pointer" },
+    data: [
+      {
+        type: "column", name: "Run", showInLegend: true, color: RUN_COLOR,
+        dataPoints: (result?.shiftSummary || []).map((r) => ({ label: `Shift ${r.shift}`, y: r.runHours })),
+      },
+      {
+        type: "column", name: "Stop", showInLegend: true, color: STOP_COLOR,
+        dataPoints: (result?.shiftSummary || []).map((r) => ({ label: `Shift ${r.shift}`, y: r.stopHours })),
+      },
+    ],
+  }), [result]);
 
   const totalRun = (result?.daily || []).reduce((s, r) => s + r.runHours, 0);
   const totalStop = (result?.daily || []).reduce((s, r) => s + r.stopHours, 0);
@@ -589,7 +546,6 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
       ) : (
         <div className="bg-card rounded-md shadow-lg p-2">
           <CanvasJSChart options={mode === "daily" ? dailyChartOptions : shiftChartOptions} />
-          <RunStopLegend />
         </div>
       )}
 
