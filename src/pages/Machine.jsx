@@ -1082,7 +1082,12 @@ function MachineTimeline({ timeline, shift }) {
           </div>
         ))}
 
-        {shiftFracs.map((f, i) => (
+        
+      </div>
+
+      {/* Panel info detail segmen aktif */}
+
+      {shiftFracs.map((f, i) => (
             <span
               key={i}
               className="absolute"
@@ -1094,9 +1099,6 @@ function MachineTimeline({ timeline, shift }) {
               S{i + 1}
             </span>
           ))}
-      </div>
-
-      {/* Panel info detail segmen aktif */}
       <div
         className="flex items-center gap-3"
         style={{
