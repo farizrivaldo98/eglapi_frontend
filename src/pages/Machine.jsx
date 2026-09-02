@@ -1024,18 +1024,7 @@ function MachineTimeline({ timeline, shift }) {
               {String(h).padStart(2, "0")}:00
             </span>
           ))}
-          {shiftFracs.map((f, i) => (
-            <span
-              key={i}
-              className="absolute"
-              style={{
-                left: pctStr(f), bottom: -10, transform: "translateX(-50%)",
-                fontSize: 9, color: "var(--text-muted)", whiteSpace: "nowrap",
-              }}
-            >
-              S{i + 1}
-            </span>
-          ))}
+          
         </div>
       </div>
 
@@ -1092,6 +1081,19 @@ function MachineTimeline({ timeline, shift }) {
             </div>
           </div>
         ))}
+
+        {shiftFracs.map((f, i) => (
+            <span
+              key={i}
+              className="absolute"
+              style={{
+                left: pctStr(f), bottom: -10, transform: "translateX(-50%)",
+                fontSize: 9, color: "var(--text-muted)", whiteSpace: "nowrap",
+              }}
+            >
+              S{i + 1}
+            </span>
+          ))}
       </div>
 
       {/* Panel info detail segmen aktif */}
