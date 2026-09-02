@@ -662,7 +662,7 @@ const daysAgoStr = (n) => {
 // ── Helper buat MachineTimeline (segmen Run/Stop per hari) ────────────────
 // Segmen dari backend berformat "YYYY-MM-DD HH:mm:ss" (lihat field
 // timeline.<date> di response getMachineRunningHours).
-const TIMELINE_TICK_HOURS = [0, 4, 8, 12, 16, 20, 24];
+const TIMELINE_TICK_HOURS = [0,2, 4,6, 8,10, 12,14, 16,18, 20,22, 24];
 
 function timeFrac(dtStr) {
   const t = dtStr.includes(" ") ? dtStr.split(" ")[1] : dtStr;
@@ -1029,7 +1029,7 @@ function MachineTimeline({ timeline, shift }) {
               key={i}
               className="absolute"
               style={{
-                left: pctStr(f), bottom: 0, transform: "translateX(-50%)",
+                left: pctStr(f), bottom: -10, transform: "translateX(-50%)",
                 fontSize: 9, color: "var(--text-muted)", whiteSpace: "nowrap",
               }}
             >
