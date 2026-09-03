@@ -685,6 +685,15 @@ function formatDurationMin(m) {
 }
 const pctStr = (f) => `${(f * 100).toFixed(2)}%`;
 
+function useDebouncedValue(value, delayMs = 500) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(t);
+  }, [value, delayMs]);
+  return debounced;
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 export default function Machine() {
   const toast = useToast();
@@ -1190,6 +1199,18 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+
+  function useDebouncedValue(value, delayMs = 500) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(t);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+
+
   const fetchRunningHours = useCallback(() => {
     setLoading(true);
     apiGet("/getMachineRunningHours", {
@@ -1211,7 +1232,7 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
   useEffect(() => {
     fetchRunningHours();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [machineKey]);
+  }, [machineKey, debouncedStart, debouncedFinish]);
 
   const dailyChartOptions = useMemo(() => ({
     animationEnabled: true,
