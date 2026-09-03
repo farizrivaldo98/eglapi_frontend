@@ -1196,6 +1196,8 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
   const [start, setStart] = useState(daysAgoStr(6));
   const [finish, setFinish] = useState(todayStr());
   const [mode, setMode] = useState("daily"); // "daily" | "shift"
+    const debouncedStart = useDebouncedValue(start, 500);
+  const debouncedFinish = useDebouncedValue(finish, 500);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
