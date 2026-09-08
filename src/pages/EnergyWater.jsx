@@ -46,8 +46,8 @@ const METERS = [
   //{ key: "trane1", label: "Train 1", colorLight: "#cacd32", colorDark: "#cacd32" },
   //{ key: "trane2", label: "Train 2", colorLight: "#cd3232", colorDark: "#cd3232" },
   { key: "SW_Supplay", label: "SoftWater_Output", colorLight:  "#32cd32", colorDark: "#00ff00" },
-  { key: "PDAM_Supplay", label: "DenimWater_Output", colorLight:  "#1e90ff", colorDark: "#00bfff" },  
-  { key: "PWG_Return", label: "PureWater_Input", colorLight: "#e77b23", colorDark: "#e77b23" }, 
+  { key: "PDAM_Supplay", label: "Domestic_Output", colorLight:  "#1e90ff", colorDark: "#00bfff" },  
+  { key: "PWG_Return", label: "PW_Input", colorLight: "#e77b23", colorDark: "#e77b23" }, 
 
 
 ];
@@ -548,7 +548,7 @@ function PerbandinganWater() {
             onChange={datePickStart}
             placeholder="Start Date"
             size="md"
-            type="datetime-local"
+            type="datetime"
             css={{
               "&::-webkit-calendar-picker-indicator": {
                 color: isDarkMode ? "white" : "black",
