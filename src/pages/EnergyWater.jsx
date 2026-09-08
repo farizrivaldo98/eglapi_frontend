@@ -548,7 +548,7 @@ function PerbandinganWater() {
             onChange={datePickStart}
             placeholder="Start Date"
             size="md"
-            type="datetime"
+            type="datetime-local"
             css={{
               "&::-webkit-calendar-picker-indicator": {
                 color: isDarkMode ? "white" : "black",
