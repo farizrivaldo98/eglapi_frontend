@@ -1328,12 +1328,17 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
       const total = r.runHours + r.stopHours;
       return total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
     };
+    // Bar paling tinggi butuh ruang kosong di atasnya buat nampung label %
+    // (indexLabelPlacement: "outside") - kalau gak dikasih headroom, pas bar-nya
+    // mepet ke batas atas chart, labelnya kepotong / gak keliatan penuh.
+    const maxVal = rows.reduce((m, r) => Math.max(m, r.runHours, r.stopHours), 0);
+    const axisYMax = maxVal > 0 ? Math.ceil(maxVal * 1.2) : undefined;
     return {
       animationEnabled: true,
       theme: "light2",
       title: { text: `Run vs Stop per Shift (${date})`, fontSize: 14 },
       axisX: { interval: 1 },
-      axisY: { title: "Jam", suffix: " h" },
+      axisY: { title: "Jam", suffix: " h", maximum: axisYMax },
       toolTip: { shared: true },
       legend: { cursor: "pointer" },
       data: [
