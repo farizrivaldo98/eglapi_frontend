@@ -1320,25 +1320,42 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
     ],
   }), [hourlyBreakdown, date]);
 
-  const shiftChartOptions = useMemo(() => ({
-    animationEnabled: true,
-    theme: "light2",
-    title: { text: `Run vs Stop per Shift (${date})`, fontSize: 14 },
-    axisX: { interval: 1 },
-    axisY: { title: "Jam", suffix: " h" },
-    toolTip: { shared: true },
-    legend: { cursor: "pointer" },
-    data: [
-      {
-        type: "column", name: "Run", showInLegend: true, color: RUN_COLOR,
-        dataPoints: (result?.shiftSummary || []).map((r) => ({ label: `Shift ${r.shift}`, y: r.runHours })),
-      },
-      {
-        type: "column", name: "Stop", showInLegend: true, color: STOP_COLOR,
-        dataPoints: (result?.shiftSummary || []).map((r) => ({ label: `Shift ${r.shift}`, y: r.stopHours })),
-      },
-    ],
-  }), [result, date]);
+  const shiftChartOptions = useMemo(() => {
+    const rows = result?.shiftSummary || [];
+    // Persentase run/stop dihitung terhadap total (run+stop) SHIFT itu
+    // sendiri (bukan terhadap 24 jam), jadi 2 bar tiap shift selalu total 100%.
+    const pctOf = (value, r) => {
+      const total = r.runHours + r.stopHours;
+      return total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+    };
+    return {
+      animationEnabled: true,
+      theme: "light2",
+      title: { text: `Run vs Stop per Shift (${date})`, fontSize: 14 },
+      axisX: { interval: 1 },
+      axisY: { title: "Jam", suffix: " h" },
+      toolTip: { shared: true },
+      legend: { cursor: "pointer" },
+      data: [
+        {
+          type: "column", name: "Run", showInLegend: true, color: RUN_COLOR,
+          indexLabelFontColor: RUN_COLOR, indexLabelPlacement: "outside",
+          dataPoints: rows.map((r) => ({
+            label: `Shift ${r.shift}`, y: r.runHours,
+            indexLabel: `${pctOf(r.runHours, r)}%`,
+          })),
+        },
+        {
+          type: "column", name: "Stop", showInLegend: true, color: STOP_COLOR,
+          indexLabelFontColor: STOP_COLOR, indexLabelPlacement: "outside",
+          dataPoints: rows.map((r) => ({
+            label: `Shift ${r.shift}`, y: r.stopHours,
+            indexLabel: `${pctOf(r.stopHours, r)}%`,
+          })),
+        },
+      ],
+    };
+  }, [result, date]);
 
   const totalRun = (result?.daily || []).reduce((s, r) => s + r.runHours, 0);
   const totalStop = (result?.daily || []).reduce((s, r) => s + r.stopHours, 0);
