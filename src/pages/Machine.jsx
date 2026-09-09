@@ -685,6 +685,34 @@ function formatDurationMin(m) {
 }
 const pctStr = (f) => `${(f * 100).toFixed(2)}%`;
 
+// Hitung breakdown menit Run/Stop per jam (00-23) dari segmen timeline 1
+// hari (dipakai grafik "Run vs Stop — 24 Jam"). Segmen dari backend udah
+// dipotong per-hari-kalender (lihat flushOpenSeg di databaseControllers.js),
+// jadi kalau segmen berakhir tepat tengah malam, tanggal di field `end`
+// bakal jadi hari berikutnya - itu dianggap 24:00 (bukan 00:00) di sini
+// supaya durasinya kehitung penuh sampai akhir hari yang dipilih.
+function computeHourlyBreakdown(segments, dayKey) {
+  const buckets = Array.from({ length: 24 }, (_, hour) => ({ hour, runMin: 0, stopMin: 0 }));
+  const minutesOfDay = (dtStr, isEnd) => {
+    const [datePart, timePart] = dtStr.split(" ");
+    if (isEnd && datePart !== dayKey) return 1440;
+    const [h, m, s = 0] = timePart.split(":").map(Number);
+    return h * 60 + m + s / 60;
+  };
+  (segments || []).forEach((seg) => {
+    const segStart = minutesOfDay(seg.start, false);
+    const segEnd = minutesOfDay(seg.end, true);
+    for (let h = 0; h < 24; h++) {
+      const overlap = Math.min(segEnd, (h + 1) * 60) - Math.max(segStart, h * 60);
+      if (overlap > 0) {
+        if (seg.state === "run") buckets[h].runMin += overlap;
+        else buckets[h].stopMin += overlap;
+      }
+    }
+  });
+  return buckets;
+}
+
 function useDebouncedValue(value, delayMs = 500) {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -1164,8 +1192,53 @@ function MachineTimeline({ timeline, shift }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// MachineRunningHours — setingan shift + threshold, lalu grafik batang
-// Run vs Stop per hari ATAU per shift, untuk rentang tanggal terpilih.
+// MachineStartStopTable — tabel start/stop per segmen (pendamping bar
+// MachineTimeline) buat 1 hari terpilih: No, Status, Jam Mulai, Jam
+// Selesai, Durasi.
+// ═══════════════════════════════════════════════════════════════════
+function MachineStartStopTable({ segments }) {
+  if (!segments || segments.length === 0) {
+    return (
+      <Text fontSize="sm" color="gray.500" textAlign="center" py={6}>
+        Belum ada data start-stop untuk tanggal ini.
+      </Text>
+    );
+  }
+  return (
+    <Table size="sm">
+      <Thead>
+        <Tr>
+          <Th>No</Th>
+          <Th>Status</Th>
+          <Th>Jam Mulai</Th>
+          <Th>Jam Selesai</Th>
+          <Th isNumeric>Durasi</Th>
+        </Tr>
+      </Thead>
+      <Tbody>
+        {segments.map((seg, i) => (
+          <Tr key={i}>
+            <Td>{i + 1}</Td>
+            <Td>
+              <Badge colorScheme={seg.state === "run" ? "green" : "red"}>
+                {seg.state === "run" ? "RUN" : "STOP"}
+              </Badge>
+            </Td>
+            <Td>{hhmm(seg.start)}</Td>
+            <Td>{hhmm(seg.end)}</Td>
+            <Td isNumeric>{formatDurationMin(seg.durationMin)}</Td>
+          </Tr>
+        ))}
+      </Tbody>
+    </Table>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MachineRunningHours — setingan shift + threshold, lalu breakdown Run vs
+// Stop buat 1 HARI TERPILIH (bukan rentang tanggal lagi): grafik 24 Jam
+// (per jam, dihitung dari segmen timeline) ATAU grafik Per Shift, timeline
+// visual, dan tabel start/stop per segmen.
 // ═══════════════════════════════════════════════════════════════════
 function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, setThreshold }) {
   const toast = useToast();
@@ -1192,33 +1265,19 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
       .finally(() => setSavingShift(false));
   };
 
-  // ── Rentang tanggal & mode tampilan ──────────────────────────────
-  const [start, setStart] = useState(daysAgoStr(6));
-  const [finish, setFinish] = useState(todayStr());
-  const [mode, setMode] = useState("daily"); // "daily" | "shift"
-    const debouncedStart = useDebouncedValue(start, 500);
-  const debouncedFinish = useDebouncedValue(finish, 500);
+  // ── Tanggal — 1 hari aja (bukan rentang start-finish), default hari ini ──
+  const [date, setDate] = useState(todayStr());
+  const [mode, setMode] = useState("hourly"); // "hourly" (24 jam) | "shift"
+  const debouncedDate = useDebouncedValue(date, 500);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-
-
-  function useDebouncedValue(value, delayMs = 500) {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(t);
-  }, [value, delayMs]);
-  return debounced;
-}
-
-
 
   const fetchRunningHours = useCallback(() => {
     setLoading(true);
     apiGet("/getMachineRunningHours", {
       machine: machineKey,
-      start: `${start} 00:00:00`,
-      finish: `${finish} 23:59:59`,
+      start: `${date} 00:00:00`,
+      finish: `${date} 23:59:59`,
       flowCol,
       threshold,
       shift1Start: shift.shift1_start, shift1End: shift.shift1_end,
@@ -1229,37 +1288,42 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
       .catch((err) => toast({ title: "Gagal memuat running hours", description: err.message, status: "error" }))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [machineKey, start, finish, flowCol, threshold, shift]);
+  }, [machineKey, date, flowCol, threshold, shift]);
 
   useEffect(() => {
     fetchRunningHours();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [machineKey, debouncedStart, debouncedFinish]);
+  }, [machineKey, debouncedDate]);
 
-  const dailyChartOptions = useMemo(() => ({
+  // Segmen run/stop hari terpilih - dipakai bareng MachineTimeline,
+  // MachineStartStopTable, & breakdown per jam di bawah.
+  const daySegments = result?.timeline?.[date] || [];
+  const hourlyBreakdown = useMemo(() => computeHourlyBreakdown(daySegments, date), [daySegments, date]);
+
+  const hourlyChartOptions = useMemo(() => ({
     animationEnabled: true,
     theme: "light2",
-    title: { text: "Run vs Stop per Hari", fontSize: 14 },
-    axisX: { valueFormatString: "DD MMM" },
-    axisY: { title: "Jam", suffix: " h" },
+    title: { text: `Run vs Stop — 24 Jam (${date})`, fontSize: 14 },
+    axisX: { title: "Jam", interval: 1 },
+    axisY: { title: "Menit", suffix: " m", maximum: 60, interval: 15 },
     toolTip: { shared: true },
     legend: { cursor: "pointer" },
     data: [
       {
-        type: "column", name: "Run", showInLegend: true, color: RUN_COLOR, xValueType: "dateTime",
-        dataPoints: (result?.daily || []).map((r) => ({ x: new Date(r.date), y: r.runHours })),
+        type: "stackedColumn", name: "Run", showInLegend: true, color: RUN_COLOR,
+        dataPoints: hourlyBreakdown.map((h) => ({ label: `${String(h.hour).padStart(2, "0")}:00`, y: Number(h.runMin.toFixed(1)) })),
       },
       {
-        type: "column", name: "Stop", showInLegend: true, color: STOP_COLOR, xValueType: "dateTime",
-        dataPoints: (result?.daily || []).map((r) => ({ x: new Date(r.date), y: r.stopHours })),
+        type: "stackedColumn", name: "Stop", showInLegend: true, color: STOP_COLOR,
+        dataPoints: hourlyBreakdown.map((h) => ({ label: `${String(h.hour).padStart(2, "0")}:00`, y: Number(h.stopMin.toFixed(1)) })),
       },
     ],
-  }), [result]);
+  }), [hourlyBreakdown, date]);
 
   const shiftChartOptions = useMemo(() => ({
     animationEnabled: true,
     theme: "light2",
-    title: { text: "Run vs Stop per Shift (total rentang tanggal terpilih)", fontSize: 14 },
+    title: { text: `Run vs Stop per Shift (${date})`, fontSize: 14 },
     axisX: { interval: 1 },
     axisY: { title: "Jam", suffix: " h" },
     toolTip: { shared: true },
@@ -1274,7 +1338,7 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
         dataPoints: (result?.shiftSummary || []).map((r) => ({ label: `Shift ${r.shift}`, y: r.stopHours })),
       },
     ],
-  }), [result]);
+  }), [result, date]);
 
   const totalRun = (result?.daily || []).reduce((s, r) => s + r.runHours, 0);
   const totalStop = (result?.daily || []).reduce((s, r) => s + r.stopHours, 0);
@@ -1334,19 +1398,15 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
         </div>
       </div> */}
 
-      {/* Rentang tanggal + mode tampilan */}
+      {/* Tanggal (1 hari) + mode tampilan */}
       <div className="flex items-end gap-3 flex-wrap">
         <FormControl w="160px">
-          <FormLabel fontSize="sm">Tanggal Mulai</FormLabel>
-          <Input size="sm" type="date" value={start} onChange={(e) => setStart(e.target.value)} />
-        </FormControl>
-        <FormControl w="160px">
-          <FormLabel fontSize="sm">Tanggal Selesai</FormLabel>
-          <Input size="sm" type="date" value={finish} onChange={(e) => setFinish(e.target.value)} />
+          <FormLabel fontSize="sm">Tanggal</FormLabel>
+          <Input size="sm" type="date" max={todayStr()} value={date} onChange={(e) => setDate(e.target.value)} />
         </FormControl>
         <RadioGroup value={mode} onChange={setMode}>
           <Stack direction="row" spacing={4}>
-            <Radio value="daily">Per Hari</Radio>
+            <Radio value="hourly">24 Jam</Radio>
             <Radio value="shift">Per Shift</Radio>
           </Stack>
         </RadioGroup>
@@ -1365,39 +1425,46 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
           <Stat><StatLabel>Uptime</StatLabel><StatNumber>{uptimePct}%</StatNumber></Stat>
         </div>
         <div className="bg-card rounded-md shadow-lg p-4">
-          <Stat><StatLabel>Hari Terhitung</StatLabel><StatNumber>{result?.daily?.length ?? 0}</StatNumber></Stat>
+          <Stat><StatLabel>Jumlah Segmen</StatLabel><StatNumber>{daySegments.length}</StatNumber></Stat>
         </div>
       </SimpleGrid>
 
-      {/* Grafik batang Run vs Stop */}
+      {/* Grafik Run vs Stop - 24 Jam (per jam) atau Per Shift */}
       {loading ? (
         <div className="flex justify-center p-8"><Spinner /></div>
       ) : (
         <div className="bg-card rounded-md shadow-lg p-2">
-          <CanvasJSChart options={mode === "daily" ? dailyChartOptions : shiftChartOptions} />
+          <CanvasJSChart options={mode === "hourly" ? hourlyChartOptions : shiftChartOptions} />
         </div>
       )}
 
-      {/* Timeline Run/Stop per hari - detail potongan jam:menit run & stop */}
+      {/* Timeline Run/Stop - visual bar full 24 jam buat tanggal terpilih */}
       {!loading && (
         <div className="bg-card rounded-md shadow-lg p-4">
-          <Text fontWeight="bold" mb={3}>Timeline Run / Stop — detail per hari</Text>
+          <Text fontWeight="bold" mb={3}>Timeline Run / Stop — {date}</Text>
           <MachineTimeline timeline={result?.timeline} shift={shift} />
         </div>
       )}
 
-      {/* Detail per hari per shift - cuma muncul di mode "Per Shift" */}
+      {/* Tabel start/stop per segmen - pendamping timeline di atas */}
+      {!loading && (
+        <div className="bg-card rounded-md shadow-lg p-4 overflow-x-auto">
+          <Text fontWeight="bold" mb={2}>Tabel Start / Stop — {date}</Text>
+          <MachineStartStopTable segments={daySegments} />
+        </div>
+      )}
+
+      {/* Detail per shift - cuma muncul di mode "Per Shift" */}
       {mode === "shift" && result?.shiftDaily?.length > 0 && (
         <div className="bg-card rounded-md shadow-lg p-4 overflow-x-auto">
-          <Text fontWeight="bold" mb={2}>Detail Per Hari Per Shift</Text>
+          <Text fontWeight="bold" mb={2}>Detail Per Shift — {date}</Text>
           <Table size="sm">
             <Thead>
-              <Tr><Th>Tanggal</Th><Th>Shift</Th><Th isNumeric>Run (h)</Th><Th isNumeric>Stop (h)</Th></Tr>
+              <Tr><Th>Shift</Th><Th isNumeric>Run (h)</Th><Th isNumeric>Stop (h)</Th></Tr>
             </Thead>
             <Tbody>
               {result.shiftDaily.map((r) => (
                 <Tr key={`${r.date}-${r.shift}`}>
-                  <Td>{r.date}</Td>
                   <Td>Shift {r.shift}</Td>
                   <Td isNumeric>{r.runHours}</Td>
                   <Td isNumeric>{r.stopHours}</Td>
