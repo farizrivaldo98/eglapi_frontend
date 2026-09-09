@@ -84,6 +84,10 @@ function PerbandinganWater() {
   );
   const userGlobal = useSelector((state) => state.user.user);
 
+  // Per Jam butuh jam (datetime-local), Per Hari/Per Bulan cukup tanggal aja
+  // (date) - gak ada gunanya nunjukkin jam kalau hasilnya di-agregasi harian.
+  const dateInputType = periodType === "hourly" ? "datetime-local" : "date";
+
   useEffect(() => {
     const handleThemeChange = () => {
       const currentTheme = document.documentElement.getAttribute("data-theme");
@@ -97,6 +101,14 @@ function PerbandinganWater() {
     return () => observer.disconnect();
   }, []);
 
+  // Value lama dari input datetime-local ("2026-09-07T14:30") gak nyambung
+  // sama input type="date" ("2026-09-07") dan sebaliknya - reset biar user
+  // milih ulang sesuai tipe input yang lagi aktif.
+  useEffect(() => {
+    setDatePickerStart(undefined);
+    setDatePickerFinish(undefined);
+  }, [periodType]);
+
   const allSelected = selectedMeterKeys.length === METERS.length;
 
   const toggleMeter = (key) => {
@@ -104,6 +116,18 @@ function PerbandinganWater() {
   };
   const toggleSelectAll = () => {
     setSelectedMeterKeys((prev) => (prev.length === METERS.length ? [] : METERS.map((m) => m.key)));
+  };
+
+  // datetime-local ngasih "2026-09-07T14:30" -> tinggal ganti "T" jadi spasi.
+  // date-only (daily/monthly) ngasih "2026-09-07" tanpa jam - kalau dikirim
+  // apa adanya, backend cast ini jadi 00:00:00. Buat `start` itu udah bener
+  // (mulai dari awal hari), tapi buat `finish` itu salah (jadi awal hari
+  // terakhir, bukan akhir hari terakhir - data hari terakhir kepotong hampir
+  // semua). Makanya `finish` date-only di-pad ke 23:59:59.
+  const toApiDateTime = (value, isEnd) => {
+    if (!value) return value;
+    if (value.includes("T")) return value.replace("T", " ");
+    return `${value} ${isEnd ? "23:59:59" : "00:00:00"}`;
   };
 
   const getSubmit = async () => {
@@ -125,8 +149,8 @@ function PerbandinganWater() {
           axios
             .get("http://10.163.0.66:8002/part/getEnergyWaterHistorical", {
               params: {
-                start: datePickerStart.replace("T", " "),
-                finish: datePickerFinish.replace("T", " "),
+                start: toApiDateTime(datePickerStart, false),
+                finish: toApiDateTime(datePickerFinish, true),
                 period: periodType,
                 meter: key,
               },
@@ -545,10 +569,11 @@ function PerbandinganWater() {
         <div>
           <h5 className="mb-1"> Start Date</h5>
           <Input
+            key={dateInputType}
             onChange={datePickStart}
             placeholder="Start Date"
             size="md"
-            type="datetime-local"
+            type={dateInputType}
             css={{
               "&::-webkit-calendar-picker-indicator": {
                 color: isDarkMode ? "white" : "black",
@@ -567,10 +592,11 @@ function PerbandinganWater() {
         <div>
           <h5 className="mb-1"> Finish Date </h5>
           <Input
+            key={dateInputType}
             onChange={datePickFinish}
             placeholder="Finish Date"
             size="md"
-            type="datetime-local"
+            type={dateInputType}
             css={{
               "&::-webkit-calendar-picker-indicator": {
                 color: isDarkMode ? "white" : "black",
