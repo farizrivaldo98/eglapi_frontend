@@ -664,8 +664,18 @@ const daysAgoStr = (n) => {
 // timeline.<date> di response getMachineRunningHours).
 const TIMELINE_TICK_HOURS = [0,2, 4,6, 8,10, 12,14, 16,18, 20,22, 24];
 
-function timeFrac(dtStr) {
-  const t = dtStr.includes(" ") ? dtStr.split(" ")[1] : dtStr;
+function timeFrac(dtStr, dayKey) {
+  const hasDate = dtStr.includes(" ");
+  const datePart = hasDate ? dtStr.split(" ")[0] : null;
+  const t = hasDate ? dtStr.split(" ")[1] : dtStr;
+  // Segmen yang nyebrang tengah malam dikasih tanggal HARI BERIKUTNYA sama
+  // backend buat nandain 24:00 (lihat flushOpenSeg di databaseControllers.js
+  // & komentar computeHourlyBreakdown di bawah) - BUKAN 00:00 hari itu. Tanpa
+  // cek ini, "<hari berikutnya> 00:00:00" kebaca sebagai fraksi 0 (awal
+  // hari), bukan 1 (akhir hari) - bar-nya jadi collapse ke lebar minimum
+  // (0.004) persis di titik itu, bikin timeline keliatan "kepotong" pendek
+  // walau data & durasinya di backend udah bener penuh 24 jam.
+  if (dayKey && datePart && datePart !== dayKey) return 1;
   const [h, m, s = 0] = t.split(":").map(Number);
   return Math.min(1, (h * 3600 + m * 60 + s) / 86400);
 }
@@ -1091,8 +1101,8 @@ function MachineTimeline({ timeline, shift }) {
                 />
               ))}
               {timeline[day].map((seg, i) => {
-                const x1 = timeFrac(seg.start);
-                const x2 = timeFrac(seg.end);
+                const x1 = timeFrac(seg.start, day);
+                const x2 = timeFrac(seg.end, day);
                 const w = Math.max(0.004, x2 - x1);
                 const isActive = activeSeg?.day === day && activeSeg?.seg === seg;
                 return (
