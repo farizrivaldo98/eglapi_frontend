@@ -1358,25 +1358,47 @@ function MachineRunningHours({ cfg, machineKey, flowCol, setFlowCol, threshold, 
     ],
   }), [hourlyBreakdown, date]);
 
-  const dailyChartOptions = useMemo(() => ({
-    animationEnabled: true,
-    theme: "light2",
-    title: { text: `Run vs Stop per Hari (${periodLabel})`, fontSize: 14 },
-    axisX: { valueFormatString: "DD MMM" },
-    axisY: { title: "Jam", suffix: " h" },
-    toolTip: { shared: true },
-    legend: { cursor: "pointer" },
-    data: [
-      {
-        type: "column", name: "Run", showInLegend: true, color: RUN_COLOR, xValueType: "dateTime",
-        dataPoints: (result?.daily || []).map((r) => ({ x: new Date(r.date), y: r.runHours })),
-      },
-      {
-        type: "column", name: "Stop", showInLegend: true, color: STOP_COLOR, xValueType: "dateTime",
-        dataPoints: (result?.daily || []).map((r) => ({ x: new Date(r.date), y: r.stopHours })),
-      },
-    ],
-  }), [result, periodLabel]);
+  const dailyChartOptions = useMemo(() => {
+    const rows = result?.daily || [];
+    // Persentase run/stop dihitung terhadap total (run+stop) HARI itu
+    // sendiri (bukan terhadap 24 jam), jadi 2 bar tiap hari selalu total 100%.
+    const pctOf = (value, r) => {
+      const total = r.runHours + r.stopHours;
+      return total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
+    };
+    // Bar paling tinggi butuh ruang kosong di atasnya buat nampung label %
+    // (indexLabelPlacement: "outside") - kalau gak dikasih headroom, pas bar-nya
+    // mepet ke batas atas chart, labelnya kepotong / gak keliatan penuh.
+    const maxVal = rows.reduce((m, r) => Math.max(m, r.runHours, r.stopHours), 0);
+    const axisYMax = maxVal > 0 ? Math.ceil(maxVal * 1.2) : undefined;
+    return {
+      animationEnabled: true,
+      theme: "light2",
+      title: { text: `Run vs Stop per Hari (${periodLabel})`, fontSize: 14 },
+      axisX: { valueFormatString: "DD MMM" },
+      axisY: { title: "Jam", suffix: " h", maximum: axisYMax },
+      toolTip: { shared: true },
+      legend: { cursor: "pointer" },
+      data: [
+        {
+          type: "column", name: "Run", showInLegend: true, color: RUN_COLOR, xValueType: "dateTime",
+          indexLabelFontColor: RUN_COLOR, indexLabelPlacement: "outside",
+          dataPoints: rows.map((r) => ({
+            x: new Date(r.date), y: r.runHours,
+            indexLabel: `${pctOf(r.runHours, r)}%`,
+          })),
+        },
+        {
+          type: "column", name: "Stop", showInLegend: true, color: STOP_COLOR, xValueType: "dateTime",
+          indexLabelFontColor: STOP_COLOR, indexLabelPlacement: "outside",
+          dataPoints: rows.map((r) => ({
+            x: new Date(r.date), y: r.stopHours,
+            indexLabel: `${pctOf(r.stopHours, r)}%`,
+          })),
+        },
+      ],
+    };
+  }, [result, periodLabel]);
 
   const shiftChartOptions = useMemo(() => {
     const rows = result?.shiftSummary || [];
