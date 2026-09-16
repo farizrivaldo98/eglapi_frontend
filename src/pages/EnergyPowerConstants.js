@@ -28,18 +28,18 @@ export const UNITS = {
 export const METERS = [
   { key: "uty1",      label: "SDP UTILITY",   colorLight: "#1e90ff", colorDark: "#00bfff" },
   { key: "lapi1",     label: "SDP LAPI 1",  colorLight: "#32cd32", colorDark: "#00ff00" },
-  { key: "SDP2_PRO1", label: "SDP2_PRO1", colorLight: "#ceff1e", colorDark: "#ceff1e" },
-  { key: "SDP1_OFC1", label: "SDP1_OFC1", colorLight: "#cd32b8", colorDark: "#cd32b8" },
+  { key: "SDP2_PRO1", label: "SDP2 LIQUID", colorLight: "#ceff1e", colorDark: "#ceff1e" },
+  { key: "SDP1_OFC1", label: "SDP1 STERILE", colorLight: "#cd32b8", colorDark: "#cd32b8" },
   { key: "PP_Chiller", label: "SDP CHILLER", colorLight: "#cd6b32", colorDark: "#cd6b32" },
-  { key: "SDP1_OFC23", label: "SDP1_OFC23", colorLight: "#32b3cd", colorDark: "#32b3cd" },
-  { key: "SDP2_PRO2", label: "SDP2_PRO2", colorLight: "#ae7294", colorDark: "#ae7294" },
-  { key: "SDP1_OFC45", label: "SDP1_OFC45", colorLight: "#166d3c", colorDark: "#166d3c" },
-  { key: "SDP2_OFC45", label: "SDP2_OFC45", colorLight: "#5c6d16", colorDark: "#5c6d16" },
+  { key: "SDP1_OFC23", label: "SDP1 OFFICE 2&3", colorLight: "#32b3cd", colorDark: "#32b3cd" },
+  { key: "SDP2_PRO2", label: "SDP2 SOLID", colorLight: "#ae7294", colorDark: "#ae7294" },
+  { key: "SDP1_OFC45", label: "SDP1 RD&QC", colorLight: "#166d3c", colorDark: "#166d3c" },
+  { key: "SDP2_OFC45", label: "SDP2 AC RD&QC", colorLight: "#5c6d16", colorDark: "#5c6d16" },
   { key: "SDP_MC", label: "SDP MICRO", colorLight: "#d1c543", colorDark: "#d1c543" },
-  { key: "PP_HVAC_Mezzanine3", label: "PP_HVAC_Mezzanine3", colorLight: "#5d43d1", colorDark: "#5d43d1" },
-  { key: "PP_LP", label: "PP_LP", colorLight: "#d14343", colorDark: "#d14343" },
-  { key: "SDP2_Pro3", label: "SDP2_Pro3", colorLight: "#43d1b2", colorDark: "#43d1b2" },
-  { key: "LVMDP1", label: "LVMDP1", colorLight: "#d7ca8c", colorDark: "#d7ca8c" }
+  { key: "PP_HVAC_Mezzanine3", label: "PP HVAC Mezzanine3", colorLight: "#5d43d1", colorDark: "#5d43d1" },
+  { key: "PP_LP", label: "PP LP Prod Lt3 ", colorLight: "#d14343", colorDark: "#d14343" },
+  { key: "SDP2_Pro3", label: "SDP2 Prod Lt3", colorLight: "#43d1b2", colorDark: "#43d1b2" },
+  //{ key: "LVMDP1", label: "LVMDP1", colorLight: "#d7ca8c", colorDark: "#d7ca8c" }
 
 
 
