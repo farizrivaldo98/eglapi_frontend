@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Tabs, TabList, TabPanels, Tab, TabPanel } from "@chakra-ui/react";
 import EnergyPower from "./EnergyPower"
 import EnergyWater from "./EnergyWater"
+import EnergyNitrogen from "./EnergyNitrogen"
 
 
 const API_BASE = "http://10.163.0.66:8002/part";
@@ -41,6 +42,8 @@ function Energy() {
         <TabList>
           <Tab>Power Meter</Tab>
           <Tab>Water Meter</Tab>
+          <Tab>Nitrogen Meter</Tab>
+
         </TabList>
         <TabPanels>
           <TabPanel px={0}>
@@ -48,6 +51,9 @@ function Energy() {
           </TabPanel>
           <TabPanel px={0}>
             <EnergyWater  apiBase={API_BASE} isDarkMode={isDarkMode} />
+          </TabPanel>
+          <TabPanel px={0}>
+            <EnergyNitrogen  apiBase={API_BASE} isDarkMode={isDarkMode} />
           </TabPanel>
         </TabPanels>
       </Tabs>
